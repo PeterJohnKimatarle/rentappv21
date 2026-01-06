@@ -112,10 +112,10 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
                 Built for renters, brokers, and owners.
               </p>
               <div className="flex justify-center items-center gap-4 mt-4">
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2">
+                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-4">
                   Privacy Policy
                 </a>
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2">
+                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-4">
                   Terms & Conditions
                 </a>
               </div>
