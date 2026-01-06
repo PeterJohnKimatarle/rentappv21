@@ -1,6 +1,6 @@
 'use client';
 
-import { Smartphone, Info, Zap, Heart, Lightbulb } from 'lucide-react';
+import { Smartphone, Info, Zap, Heart } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
 interface AppInfoModalProps {
@@ -94,10 +94,7 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
 
             {/* Support */}
             <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
-              <div className="flex items-center space-x-2 mb-2">
-                <Lightbulb className="text-yellow-600" size={20} />
-                <h4 className="font-semibold text-yellow-900">Help & Support</h4>
-              </div>
+              <h4 className="font-semibold text-yellow-900 mb-2">💡 Help & Support</h4>
               <p className="text-sm text-yellow-800 mb-2">
                 If you encounter any issues with the app, try refreshing or reinstalling.
               </p>
