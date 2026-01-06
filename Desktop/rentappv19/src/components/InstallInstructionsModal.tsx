@@ -1,6 +1,6 @@
 'use client';
 
-import { Smartphone, Chrome, Compass, Globe } from 'lucide-react';
+import { Chrome, Compass, Globe } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
 interface InstallInstructionsModalProps {
@@ -32,10 +32,7 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
       >
         {/* Header */}
         <div className="flex items-center justify-center pt-3 pb-2 px-4 bg-white sticky top-0 z-10 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <Smartphone className="text-blue-500" size={24} />
-            <h3 className="text-xl font-semibold text-black">Install Rentapp</h3>
-          </div>
+          <h3 className="text-xl font-semibold text-black">Install Rentapp</h3>
         </div>
 
         {/* Content */}
@@ -89,7 +86,6 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
               <h4 className="font-semibold text-yellow-900 mb-2">✨ Benefits of Installing:</h4>
               <ul className="text-sm text-yellow-800 space-y-1">
                 <li>• Faster loading times</li>
-                <li>• Push notifications</li>
                 <li>• App-like experience</li>
                 <li>• Easy access from home screen</li>
               </ul>

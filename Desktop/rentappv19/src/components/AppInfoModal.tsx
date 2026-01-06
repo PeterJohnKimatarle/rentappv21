@@ -1,6 +1,6 @@
 'use client';
 
-import { Smartphone, Info, Star, Shield, Zap, Heart } from 'lucide-react';
+import { Smartphone, Info, Zap, Heart } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
 interface AppInfoModalProps {
@@ -32,10 +32,7 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-center pt-3 pb-2 px-4 bg-white sticky top-0 z-10 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <Smartphone className="text-blue-500" size={24} />
-            <h3 className="text-xl font-semibold text-black">App info</h3>
-          </div>
+          <h3 className="text-xl font-semibold text-black">App info</h3>
         </div>
 
         {/* Content */}
@@ -59,14 +56,6 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
                   <span>Faster loading times</span>
                 </li>
                 <li className="flex items-center space-x-2">
-                  <Shield className="text-blue-500" size={16} />
-                  <span>Offline functionality</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <Star className="text-blue-500" size={16} />
-                  <span>Push notifications</span>
-                </li>
-                <li className="flex items-center space-x-2">
                   <Heart className="text-blue-500" size={16} />
                   <span>Enhanced user experience</span>
                 </li>
@@ -82,8 +71,6 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
               <ol className="text-sm text-green-800 space-y-2 list-decimal list-inside">
                 <li>Tap the app icon from your home screen</li>
                 <li>Browse properties with improved speed</li>
-                <li>Receive notifications about new listings</li>
-                <li>Access all features offline when available</li>
                 <li>Enjoy the full mobile app experience</li>
               </ol>
             </div>
