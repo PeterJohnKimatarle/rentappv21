@@ -158,14 +158,15 @@ export default function ContactPage() {
 
         {/* Contact Options Popup */}
         {isContactPopupOpen && (
-          <div className="fixed inset-0 flex items-center justify-center z-50" style={{ touchAction: 'none', minHeight: '100vh', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)' }} onClick={(e) => {
-            // Only close on desktop when clicking the backdrop
-            if (window.innerWidth >= 1280 && e.target === e.currentTarget) {
-              setIsContactPopupOpen(false);
-            } else {
-              e.stopPropagation();
-            }
-          }}>
+          <div 
+            className="fixed inset-0 flex items-center justify-center z-50" 
+            style={{ touchAction: 'none', minHeight: '100vh', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)' }} 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsContactPopupOpen(false);
+              }
+            }}
+          >
             <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-center items-center mb-4">
                 <h3 className="text-lg font-semibold text-black">Choose Contact Method</h3>
@@ -174,9 +175,9 @@ export default function ContactPage() {
               <div className="space-y-3 mb-4">
                 <button
                   onClick={handleWhatsAppMessage}
-                  className="w-full flex items-center space-x-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                  className="w-full flex items-center space-x-3 p-2 sm:p-3 bg-green-300 hover:bg-green-400 rounded-lg transition-colors"
                 >
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
                     <MessageCircle className="w-5 h-5 text-white" />
                   </div>
                   <div className="text-left">
@@ -187,9 +188,9 @@ export default function ContactPage() {
 
                 <button
                   onClick={handleNormalCall}
-                  className="w-full flex items-center space-x-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  className="w-full flex items-center space-x-3 p-2 sm:p-3 bg-blue-300 hover:bg-blue-400 rounded-lg transition-colors"
                 >
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                     <Phone className="w-5 h-5 text-white" />
                   </div>
                   <div className="text-left">
@@ -200,9 +201,9 @@ export default function ContactPage() {
 
                 <button
                   onClick={handleNormalMessage}
-                  className="w-full flex items-center space-x-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  className="w-full flex items-center space-x-3 p-2 sm:p-3 bg-blue-300 hover:bg-blue-400 rounded-lg transition-colors"
                 >
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                     <MessageCircle className="w-5 h-5 text-white" />
                   </div>
                   <div className="text-left">
@@ -214,10 +215,7 @@ export default function ContactPage() {
 
               <button
                 onClick={() => setIsContactPopupOpen(false)}
-                className="w-full px-4 py-2 rounded-lg font-medium transition-colors"
-                style={{ backgroundColor: '#ef4444', color: 'white' }}
-                onMouseEnter={(e: React.MouseEvent) => (e.target as HTMLButtonElement).style.backgroundColor = '#dc2626'}
-                onMouseLeave={(e: React.MouseEvent) => (e.target as HTMLButtonElement).style.backgroundColor = '#ef4444'}
+                className="w-full px-4 py-2 rounded-lg font-medium bg-gray-300 hover:bg-gray-400 text-gray-700 transition-colors"
               >
                 Cancel
               </button>
