@@ -1,7 +1,7 @@
 "use client";
 
 import Layout from '@/components/Layout';
-import { Phone, MessageCircle } from 'lucide-react';
+import { Phone, MessageCircle, Facebook, Twitter, Instagram, Linkedin, Youtube, Share2 } from 'lucide-react';
 import { useState } from 'react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
@@ -68,6 +68,72 @@ export default function ContactPage() {
                     </div>
                   </div>
 
+                </div>
+              </div>
+
+              {/* Social Media Links */}
+              <div className="mt-6">
+                <h2 className="text-2xl font-bold text-gray-600 mb-3 text-center">Follow Us</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <a
+                    href="https://facebook.com/rentapp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white px-6 py-4 rounded-xl shadow-lg border border-blue-500 border-2 shadow-blue-100 hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Facebook className="w-6 h-6 text-blue-600" />
+                    <span className="text-lg font-semibold text-black">Facebook</span>
+                  </a>
+
+                  <a
+                    href="https://twitter.com/rentapp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white px-6 py-4 rounded-xl shadow-lg border border-blue-400 border-2 shadow-blue-100 hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Twitter className="w-6 h-6 text-blue-400" />
+                    <span className="text-lg font-semibold text-black">Twitter</span>
+                  </a>
+
+                  <a
+                    href="https://instagram.com/rentapp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white px-6 py-4 rounded-xl shadow-lg border border-pink-500 border-2 shadow-pink-100 hover:bg-pink-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Instagram className="w-6 h-6 text-pink-600" />
+                    <span className="text-lg font-semibold text-black">Instagram</span>
+                  </a>
+
+                  <a
+                    href="https://linkedin.com/company/rentapp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white px-6 py-4 rounded-xl shadow-lg border border-blue-700 border-2 shadow-blue-100 hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Linkedin className="w-6 h-6 text-blue-700" />
+                    <span className="text-lg font-semibold text-black">LinkedIn</span>
+                  </a>
+
+                  <a
+                    href="https://youtube.com/@rentapp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white px-6 py-4 rounded-xl shadow-lg border border-red-500 border-2 shadow-red-100 hover:bg-red-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Youtube className="w-6 h-6 text-red-600" />
+                    <span className="text-lg font-semibold text-black">YouTube</span>
+                  </a>
+
+                  <a
+                    href="https://tiktok.com/@rentapp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white px-6 py-4 rounded-xl shadow-lg border border-gray-800 border-2 shadow-gray-100 hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Share2 className="w-6 h-6 text-gray-800" />
+                    <span className="text-lg font-semibold text-black">TikTok</span>
+                  </a>
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Smartphone, Info, Zap, Heart } from 'lucide-react';
+import { Smartphone, Info, Zap, Heart, Lightbulb } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
 interface AppInfoModalProps {
@@ -95,7 +95,7 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
             {/* Support */}
             <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
               <div className="flex items-center space-x-2 mb-2">
-                <Info className="text-yellow-600" size={20} />
+                <Lightbulb className="text-yellow-600" size={20} />
                 <h4 className="font-semibold text-yellow-900">Help & Support</h4>
               </div>
               <p className="text-sm text-yellow-800 mb-2">
@@ -114,12 +114,11 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
               <p className="text-sm text-gray-500 mt-2">
                 Built for renters, brokers, and owners.
               </p>
-              <div className="flex justify-center items-center gap-2 mt-4">
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
+              <div className="flex justify-center items-center gap-4 mt-4">
+                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2">
                   Privacy Policy
                 </a>
-                <span className="text-sm text-gray-400">|</span>
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
+                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2">
                   Terms & Conditions
                 </a>
               </div>
