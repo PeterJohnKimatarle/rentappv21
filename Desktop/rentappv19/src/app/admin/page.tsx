@@ -684,7 +684,7 @@ export default function AdminPage() {
                           setShowProfileModal(true);
                         }}
                         disabled={loading}
-                        className="w-full py-2 rounded-xl bg-purple-500 text-white hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
+                        className="w-full py-2 rounded-xl bg-cyan-500 text-white hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
                         style={{ paddingLeft: '1.75rem', paddingRight: '1rem' }}
                       >
                         {(() => {
@@ -875,7 +875,7 @@ export default function AdminPage() {
                           setShowProfileModal(true);
                         }}
                         disabled={loading}
-                        className="w-full py-2 rounded-xl bg-purple-500 text-white hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
+                        className="w-full py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
                         style={{ paddingLeft: '1.75rem', paddingRight: '1rem' }}
                       >
                         {(() => {
