@@ -2187,7 +2187,7 @@ export default function PropertyDetailsPage() {
                     setShowUserNotesModal(true);
                   }
                 }}
-                className="w-full px-4 py-3 rounded-lg font-medium text-white transition-colors relative flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 rounded-lg font-medium text-white transition-colors relative flex items-center justify-start gap-2"
                 style={{ 
                   backgroundColor: 'rgba(59, 130, 246, 0.9)',
                   WebkitTapHighlightColor: 'transparent',
