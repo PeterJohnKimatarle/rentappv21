@@ -31,6 +31,7 @@ export default function PropertyDetailsPage() {
   const [showThreeDotsModal, setShowThreeDotsModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [wasOpenedFromNotesModal, setWasOpenedFromNotesModal] = useState(false);
+  const [wasOpenedFromActionsModal, setWasOpenedFromActionsModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoModalMessage, setInfoModalMessage] = useState('');
   const [notes, setNotes] = useState('');
@@ -251,18 +252,15 @@ export default function PropertyDetailsPage() {
 
   // Check if property has notes
   useEffect(() => {
-    // Don't check notes if property is closed (closed takes precedence)
-    if (typeof window !== 'undefined' && property && !isClosed && (isPinged || (user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
+    // Check notes for all states (Default, Followed, Closed)
+    if (typeof window !== 'undefined' && property) {
       const checkNotes = () => {
-        // Skip if property is closed
-        if (isClosed) {
-          setHasNotes(false);
-          return;
-        }
         // Only staff/admin can have notes - check shared staff notes
         if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
           const notes = getStaffNotes(property.id);
           setHasNotes(notes.trim().length > 0);
+        } else {
+          setHasNotes(false);
         }
       };
       checkNotes();
@@ -274,11 +272,8 @@ export default function PropertyDetailsPage() {
         window.removeEventListener('notesChanged', handleNotesChange);
         window.removeEventListener('closedChanged', checkNotes);
       };
-    } else if (isClosed) {
-      // Clear notes indicator if property is closed
-      setHasNotes(false);
     }
-  }, [property?.id, userId, isPinged, isClosed, user?.role]);
+  }, [property?.id, userId, user?.role]);
 
   // Detect keyboard visibility and move modal up by 100px when keyboard is visible
   useEffect(() => {
@@ -651,21 +646,10 @@ export default function PropertyDetailsPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         markPropertyAsViewed(); // Track property view
-                        // Only open notes modal when in Follow Up (Notes state)
+                        // Open property actions modal for all states
                         if (isPinged) {
-                          if (typeof window !== 'undefined' && property) {
-                            // For staff/admin, get shared staff notes; for regular users, get their own
-                            if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
-                              const notes = getStaffNotes(property.id);
-                              setNotes(notes);
-                            } else if (user?.id) {
-                              const key = `rentapp_notes_${user.id}_${property.id}`;
-                              const savedNotes = localStorage.getItem(key) || '';
-                              setNotes(savedNotes);
-                            }
-                          }
-                          setIsNotesEditable(false);
-                          setShowNotesModal(true);
+                          // When followed, open property actions modal instead of notes directly
+                          setShowThreeDotsModal(true);
                         } else if (isClosed) {
                           // Staff and admin can open property actions modal
                           markPropertyAsViewed(); // Track property view
@@ -676,7 +660,7 @@ export default function PropertyDetailsPage() {
                           setShowThreeDotsModal(true);
                         }
                       }}
-                      className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none"
+                      className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none relative"
                       style={{ 
                         backgroundColor: isClosed
                           ? 'rgba(34, 197, 94, 0.9)' 
@@ -691,8 +675,8 @@ export default function PropertyDetailsPage() {
                         outline: 'none'
                       }}
                     >
-                      {isPinged && !isClosed && hasNotes && (
-                        <span className="w-2 h-2 rounded-full flex-shrink-0 -ml-2" style={{ backgroundColor: '#fbbf24' }}></span>
+                      {hasNotes && (
+                        <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                       )}
                       {isClosed ? (
                         <>
@@ -702,7 +686,7 @@ export default function PropertyDetailsPage() {
                       ) : isPinged ? (
                         <>
                           <FileText size={18} />
-                          <span className="text-sm xl:text-base font-medium">Notes</span>
+                          <span className="text-sm xl:text-base font-medium">Followed</span>
                         </>
                       ) : (
                         <>
@@ -890,21 +874,10 @@ export default function PropertyDetailsPage() {
                 <button
                   onClick={() => {
                     markPropertyAsViewed(); // Track property view
-                    // Only open notes modal when in Follow Up (Notes state)
+                    // Open property actions modal for all states
                     if (isPinged) {
-                      if (typeof window !== 'undefined' && property) {
-                        // For staff/admin, get shared staff notes; for regular users, get their own
-                        if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
-                          const notes = getStaffNotes(property.id);
-                          setNotes(notes);
-                        } else if (user?.id) {
-                          const key = `rentapp_notes_${user.id}_${property.id}`;
-                          const savedNotes = localStorage.getItem(key) || '';
-                          setNotes(savedNotes);
-                        }
-                      }
-                      setIsNotesEditable(false);
-                      setShowNotesModal(true);
+                      // When followed, open property actions modal instead of notes directly
+                      setShowThreeDotsModal(true);
                     } else if (isClosed) {
                       // Staff and admin can open property actions modal
                       markPropertyAsViewed(); // Track property view
@@ -915,7 +888,7 @@ export default function PropertyDetailsPage() {
                       setShowThreeDotsModal(true);
                     }
                   }}
-                  className="flex-1 max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none"
+                  className="flex-1 max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none relative"
                   style={{ 
                     backgroundColor: isClosed
                       ? 'rgba(34, 197, 94, 0.9)' 
@@ -930,8 +903,8 @@ export default function PropertyDetailsPage() {
                     outline: 'none'
                   }}
                 >
-                  {isPinged && !isClosed && hasNotes && (
-                    <span className="w-2 h-2 rounded-full flex-shrink-0 -ml-2" style={{ backgroundColor: '#fbbf24' }}></span>
+                  {hasNotes && (
+                    <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                   )}
                   {isClosed ? (
                     <>
@@ -941,7 +914,7 @@ export default function PropertyDetailsPage() {
                   ) : isPinged ? (
                     <>
                       <FileText size={18} />
-                      <span className="text-base xl:text-lg font-medium">Notes</span>
+                      <span className="text-base xl:text-lg font-medium">Followed</span>
                     </>
                   ) : (
                     <>
@@ -1139,6 +1112,11 @@ export default function PropertyDetailsPage() {
                 onClick={() => {
             setShowNotesModal(false);
             setNotes('');
+            // Reopen property actions modal if notes was opened from there
+            if (wasOpenedFromActionsModal) {
+              setShowThreeDotsModal(true);
+              setWasOpenedFromActionsModal(false);
+            }
           }}
         >
           <div
@@ -1153,28 +1131,6 @@ export default function PropertyDetailsPage() {
               <h3 className="text-xl font-semibold text-black flex-1 text-center">
                 Follow-up notes
               </h3>
-              {((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setWasOpenedFromNotesModal(true);
-                    setShowNotesModal(false);
-                    setShowThreeDotsModal(true);
-                  }}
-                  className="absolute top-0 md:top-[60%] md:-translate-y-1/2 right-2 md:right-3 flex items-center justify-center text-gray-700 hover:text-black cursor-pointer select-none hover:bg-black/20 rounded p-1.5 transition-colors"
-                  style={{ 
-                    WebkitTapHighlightColor: 'transparent',
-                    WebkitUserSelect: 'none',
-                    MozUserSelect: 'none',
-                    msUserSelect: 'none',
-                    userSelect: 'none',
-                    outline: 'none'
-                  }}
-                  title="Options"
-                >
-                  <MoreVertical size={24} />
-                </button>
-              )}
             </div>
             
             <textarea
@@ -1240,6 +1196,11 @@ export default function PropertyDetailsPage() {
                   }
                   setIsNotesEditable(false);
                   setShowNotesModal(false);
+                  // Reopen property actions modal if notes was opened from there
+                  if (wasOpenedFromActionsModal) {
+                    setShowThreeDotsModal(true);
+                    setWasOpenedFromActionsModal(false);
+                  }
                 }}
                 className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
                 style={{ 
@@ -1259,6 +1220,11 @@ export default function PropertyDetailsPage() {
                   setIsNotesEditable(false);
                   setShowNotesModal(false);
                   setNotes('');
+                  // Reopen property actions modal if notes was opened from there
+                  if (wasOpenedFromActionsModal) {
+                    setShowThreeDotsModal(true);
+                    setWasOpenedFromActionsModal(false);
+                  }
                 }}
                 className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
                 style={{ 
@@ -1671,7 +1637,6 @@ export default function PropertyDetailsPage() {
                     outline: 'none'
                   }}
                 >
-                  <Check size={18} className="text-white" strokeWidth={3} />
                   <span>Close this property</span>
                 </button>
               )}
@@ -1679,22 +1644,37 @@ export default function PropertyDetailsPage() {
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowThreeDotsModal(false);
-                  if (wasOpenedFromNotesModal) {
-                    setShowNotesModal(true);
-                    setWasOpenedFromNotesModal(false);
+                  // Load notes for staff/admin
+                  if (typeof window !== 'undefined' && property) {
+                    if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
+                      const notes = getStaffNotes(property.id);
+                      setNotes(notes);
+                    } else if (user?.id) {
+                      const key = `rentapp_notes_${user.id}_${property.id}`;
+                      const savedNotes = localStorage.getItem(key) || '';
+                      setNotes(savedNotes);
+                    }
                   }
+                  setIsNotesEditable(false);
+                  setWasOpenedFromActionsModal(true);
+                  setShowNotesModal(true);
                 }}
-                className="w-full px-4 py-3 rounded-lg font-medium bg-gray-300 text-gray-700 select-none"
+                className="w-full px-4 py-3 rounded-lg font-medium text-white text-base flex items-center justify-center gap-2 select-none relative"
                 style={{ 
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
+                  backgroundColor: 'rgba(107, 114, 128, 0.9)',
+                    WebkitTapHighlightColor: 'transparent',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    userSelect: 'none',
+                    outline: 'none'
                 }}
               >
-                Cancel
+                {hasNotes && (
+                  <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                )}
+                <FileText size={18} />
+                <span>View/edit notes</span>
               </button>
             </div>
           </div>
