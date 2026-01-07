@@ -680,12 +680,10 @@ export default function PropertyDetailsPage() {
                       )}
                       {isClosed ? (
                         <>
-                          <Check size={18} className="text-white" strokeWidth={3} />
                           <span className="text-sm xl:text-base font-medium">Closed</span>
                         </>
                       ) : isPinged ? (
                         <>
-                          <FileText size={18} />
                           <span className="text-sm xl:text-base font-medium">Followed</span>
                         </>
                       ) : (
@@ -908,12 +906,10 @@ export default function PropertyDetailsPage() {
                   )}
                   {isClosed ? (
                     <>
-                      <Check size={18} className="text-white" strokeWidth={3} />
                       <span className="text-base xl:text-lg font-medium">Closed</span>
                     </>
                   ) : isPinged ? (
                     <>
-                      <FileText size={18} />
                       <span className="text-base xl:text-lg font-medium">Followed</span>
                     </>
                   ) : (
