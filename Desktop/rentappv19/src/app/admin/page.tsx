@@ -611,8 +611,17 @@ export default function AdminPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1 flex-wrap">
-                          <h4 className="font-semibold text-gray-900">
+                          <h4 className="font-semibold text-gray-900 relative inline-flex items-center gap-1">
                             {staff.firstName || staff.name || 'Unknown'}
+                            {(() => {
+                              if (typeof window !== 'undefined') {
+                                const notes = getUserNotes(staff.id);
+                                return notes.trim().length > 0;
+                              }
+                              return false;
+                            })() && (
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                            )}
                           </h4>
                           {staff.isApproved ? (
                             <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
@@ -673,8 +682,17 @@ export default function AdminPage() {
                           setShowProfileModal(true);
                         }}
                         disabled={loading}
-                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap"
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
                       >
+                        {(() => {
+                          if (typeof window !== 'undefined') {
+                            const notes = getUserNotes(staff.id);
+                            return notes.trim().length > 0;
+                          }
+                          return false;
+                        })() && (
+                          <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                        )}
                         <UserCircle size={16} />
                         View profile
                       </button>
@@ -812,8 +830,17 @@ export default function AdminPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1 flex-wrap">
-                          <h4 className="font-semibold text-gray-900">
+                          <h4 className="font-semibold text-gray-900 relative inline-flex items-center gap-1">
                             {userItem.firstName || userItem.name || 'Unknown'}
+                            {(() => {
+                              if (typeof window !== 'undefined') {
+                                const notes = getUserNotes(userItem.id);
+                                return notes.trim().length > 0;
+                              }
+                              return false;
+                            })() && (
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                            )}
                           </h4>
                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 flex items-center gap-1.5">
                             Member
@@ -843,8 +870,17 @@ export default function AdminPage() {
                           setShowProfileModal(true);
                         }}
                         disabled={loading}
-                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap"
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
                       >
+                        {(() => {
+                          if (typeof window !== 'undefined') {
+                            const notes = getUserNotes(userItem.id);
+                            return notes.trim().length > 0;
+                          }
+                          return false;
+                        })() && (
+                          <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                        )}
                         <UserCircle size={16} />
                         View profile
                       </button>
