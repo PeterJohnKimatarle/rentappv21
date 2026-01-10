@@ -35,11 +35,13 @@ interface NavigationProps {
 
   onAppInfoClick?: () => void;
 
+  hasActiveFilters?: boolean;
+
 }
 
 
 
-export default function Navigation({ variant = 'default', onItemClick, onSearchClick, onLoginClick, onLogoutClick, onHomeClick, onInstallClick, onAppInfoClick }: NavigationProps) {
+export default function Navigation({ variant = 'default', onItemClick, onSearchClick, onLoginClick, onLogoutClick, onHomeClick, onInstallClick, onAppInfoClick, hasActiveFilters = false }: NavigationProps) {
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -217,7 +219,7 @@ export default function Navigation({ variant = 'default', onItemClick, onSearchC
 
         >
 
-          <Search size={20} className="flex-shrink-0" />
+          <Search size={20} className={`flex-shrink-0 ${hasActiveFilters ? 'text-green-500' : ''}`} />
 
           <span className="text-base font-medium">Search</span>
 

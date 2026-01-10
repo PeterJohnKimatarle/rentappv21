@@ -3,9 +3,10 @@
 import Layout from '@/components/Layout';
 import LoginPopup from '@/components/LoginPopup';
 import PropertyCard from '@/components/PropertyCard';
+import SearchPopup, { UserSearchFilters } from '@/components/SearchPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { ShieldCheck, Users, Settings, UserCheck, Check, Menu, X, ChevronRight, LogIn, User as UserIcon, MoreVertical, Archive, Clock, UserCircle } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getAllProperties, getClosedProperties, getFollowUpProperties, DisplayProperty, getUserNotes, saveUserNotes } from '@/utils/propertyUtils';
@@ -139,9 +140,45 @@ export default function AdminPage() {
   const [isUserNotesEditable, setIsUserNotesEditable] = useState(false);
   const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
   const [hasUserNotes, setHasUserNotes] = useState(false);
+  const [userSearchFilters, setUserSearchFilters] = useState<UserSearchFilters | null>(null);
+  const [staffSearchFilters, setStaffSearchFilters] = useState<UserSearchFilters | null>(null);
 
   // Prevent body scroll when delete confirmation popup or mobile menu is open
   usePreventScroll(deleteConfirm !== null || isLoginPopupOpen || isMenuOpen || showProfileModal || showUserNotesModal);
+
+  // Set global state for Layout to know current view mode for SearchPopup
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__adminCurrentView = currentView;
+    }
+  }, [currentView]);
+
+  // Filter staff members based on search filters
+  const filteredStaff = useMemo(() => {
+    if (!staffSearchFilters) {
+      return staffMembers;
+    }
+
+    const normalise = (value?: string) => value?.toLowerCase().trim();
+
+    return staffMembers.filter((staff) => {
+      const matchesName = staffSearchFilters.name 
+        ? normalise(staff.name)?.includes(normalise(staffSearchFilters.name) || '') ||
+          normalise(staff.firstName)?.includes(normalise(staffSearchFilters.name) || '') ||
+          normalise(staff.lastName)?.includes(normalise(staffSearchFilters.name) || '')
+        : true;
+
+      const matchesEmail = staffSearchFilters.email
+        ? normalise(staff.email)?.includes(normalise(staffSearchFilters.email) || '')
+        : true;
+
+      const matchesPhone = staffSearchFilters.phone
+        ? normalise(staff.phone)?.includes(normalise(staffSearchFilters.phone) || '')
+        : true;
+
+      return matchesName && matchesEmail && matchesPhone;
+    });
+  }, [staffMembers, staffSearchFilters]);
 
   // Document-level outside-click detection for admin menu
   useEffect(() => {
@@ -328,6 +365,73 @@ export default function AdminPage() {
     const users = getAllUsers();
     setAllUsers(users);
   };
+
+  // Filter users based on search filters
+  const filteredUsers = useMemo(() => {
+    const users = allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff');
+    
+    if (!userSearchFilters) {
+      return users;
+    }
+
+    const normalise = (value?: string) => value?.toLowerCase().trim();
+
+    return users.filter((user) => {
+      const matchesName = userSearchFilters.name 
+        ? normalise(user.name)?.includes(normalise(userSearchFilters.name) || '') ||
+          normalise(user.firstName)?.includes(normalise(userSearchFilters.name) || '') ||
+          normalise(user.lastName)?.includes(normalise(userSearchFilters.name) || '')
+        : true;
+
+      const matchesEmail = userSearchFilters.email
+        ? normalise(user.email)?.includes(normalise(userSearchFilters.email) || '')
+        : true;
+
+      const matchesPhone = userSearchFilters.phone
+        ? normalise(user.phone)?.includes(normalise(userSearchFilters.phone) || '')
+        : true;
+
+      return matchesName && matchesEmail && matchesPhone;
+    });
+  }, [allUsers, userSearchFilters]);
+
+  const handleUserSearch = (filters: UserSearchFilters) => {
+    const hasFilters = Object.values(filters).some((value) => {
+      if (typeof value === 'string') {
+        return value.trim().length > 0;
+      }
+      return Boolean(value);
+    });
+    setUserSearchFilters(hasFilters ? filters : null);
+  };
+
+  const handleStaffSearch = (filters: UserSearchFilters) => {
+    const hasFilters = Object.values(filters).some((value) => {
+      if (typeof value === 'string') {
+        return value.trim().length > 0;
+      }
+      return Boolean(value);
+    });
+    setStaffSearchFilters(hasFilters ? filters : null);
+  };
+
+  // Listen for user/staff search from Layout's SearchPopup
+  useEffect(() => {
+    const handleAdminUserSearch = (event: Event) => {
+      const customEvent = event as CustomEvent<UserSearchFilters>;
+      const view = (window as any).__adminCurrentView;
+      if (view === 'users') {
+        handleUserSearch(customEvent.detail);
+      } else if (view === 'staff') {
+        handleStaffSearch(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('adminUserSearch', handleAdminUserSearch as EventListener);
+    return () => {
+      window.removeEventListener('adminUserSearch', handleAdminUserSearch as EventListener);
+    };
+  }, []);
 
   const handleApprove = async (staffId: string) => {
     setLoading(true);
@@ -534,8 +638,20 @@ export default function AdminPage() {
                 <span className="w-2 h-2 bg-red-500 rounded-full mt-0.5"></span>
               )}
             </h3>
-            <p className="text-lg font-medium text-gray-900">[{staffMembers.length}]</p>
+            <p className="text-lg font-medium text-gray-900">
+              [{staffSearchFilters ? `${filteredStaff.length}/${staffMembers.length}` : staffMembers.length}]
+            </p>
             <span className="text-xl text-gray-600">online [{staffMembers.filter(s => onlineUserIds.has(s.id)).length}]</span>
+            {staffSearchFilters && (
+              <button
+                onClick={() => {
+                  setStaffSearchFilters(null);
+                }}
+                className="text-sm px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black rounded font-medium transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
 
           {message && (
@@ -548,11 +664,13 @@ export default function AdminPage() {
             </div>
           )}
 
-          {staffMembers.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No staff members found.</p>
+          {filteredStaff.length === 0 ? (
+            <p className="text-gray-600 text-center py-8">
+              {staffSearchFilters ? 'No staff members match your search criteria.' : 'No staff members found.'}
+            </p>
           ) : (
             <div className="space-y-4">
-              {staffMembers.map((staff) => {
+              {filteredStaff.map((staff) => {
                 const isOnline = onlineUserIds.has(staff.id);
                 return (
                 <div
@@ -735,7 +853,9 @@ export default function AdminPage() {
           <div className="mb-6 sticky top-14 z-10">
             <div className="flex items-center justify-center gap-2 flex-wrap bg-blue-500 px-4 py-3 rounded-lg">
               <h4 className="text-xl font-semibold text-white">Total Users</h4>
-              <p className="text-lg font-medium text-white">[{allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length + getGuestUserCount()}]</p>
+              <p className="text-lg font-medium text-white">
+                [{userSearchFilters ? `${filteredUsers.length}/${allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}` : allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length + getGuestUserCount()}]
+              </p>
               <span className="text-xl text-white">online [{onlineUserIds.size + getActiveGuestCount()}]</span>
             </div>
           </div>
@@ -748,8 +868,20 @@ export default function AdminPage() {
                 <span className="w-2 h-2 bg-red-500 rounded-full mt-0.5"></span>
               )}
             </h3>
-            <p className="text-lg font-medium text-gray-900">[{allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}]</p>
+            <p className="text-lg font-medium text-gray-900">
+              [{userSearchFilters ? `${filteredUsers.length}/${allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}` : allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}]
+            </p>
             <span className="text-xl text-gray-600">online [{getOnlineUserCount()}]</span>
+            {userSearchFilters && (
+              <button
+                onClick={() => {
+                  setUserSearchFilters(null);
+                }}
+                className="text-sm px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black rounded font-medium transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
 
           {message && (
@@ -762,11 +894,13 @@ export default function AdminPage() {
             </div>
           )}
 
-          {allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No users found.</p>
+          {filteredUsers.length === 0 ? (
+            <p className="text-gray-600 text-center py-8">
+              {userSearchFilters ? 'No users match your search criteria.' : 'No users found.'}
+            </p>
           ) : (
             <div className="space-y-4">
-              {allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').map((userItem) => {
+              {filteredUsers.map((userItem) => {
                 const isOnline = onlineUserIds.has(userItem.id);
                 return (
                 <div
@@ -1169,7 +1303,13 @@ export default function AdminPage() {
   };
 
   return (
-    <Layout totalCount={totalProperties}>
+    <Layout 
+      totalCount={totalProperties}
+      hasActiveFilters={
+        (currentView === 'users' && userSearchFilters !== null) ||
+        (currentView === 'staff' && staffSearchFilters !== null)
+      }
+    >
       <div className={`${currentView === 'closed' || currentView === 'followup' ? '' : 'bg-gray-50'} pt-4 pb-8`}>
         <div className={`${currentView === 'closed' || currentView === 'followup' ? '' : 'max-w-5xl mx-auto px-4 sm:px-6 lg:px-8'}`}>{renderContent()}</div>
       </div>
@@ -1425,6 +1565,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
     </Layout>
   );
 }

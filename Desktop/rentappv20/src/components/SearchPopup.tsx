@@ -45,10 +45,18 @@ const wardsByRegion = {
   'other': ['Other']
 };
 
+export interface UserSearchFilters {
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
 interface SearchPopupProps {
   isOpen: boolean;
   onClose: () => void;
   searchBarPosition?: { top: number; left: number; width: number } | null;
+  mode?: 'property' | 'user'; // Default is 'property'
+  onUserSearch?: (filters: UserSearchFilters) => void; // Callback for user search
 }
 
 // Helper function to initialize state from filters (synchronous)
@@ -78,10 +86,11 @@ const initializeStateFromFilters = (filters: {
   };
 };
 
-export default function SearchPopup({ isOpen, onClose, searchBarPosition }: SearchPopupProps) {
+export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode = 'property', onUserSearch }: SearchPopupProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isUserMode = mode === 'user';
   
   // Initialize state from search session ONLY (not URL params on refresh)
   // On page refresh, search session is cleared, so inputs initialize to empty
@@ -263,12 +272,19 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
 
   // Clear profile when property type changes
   useEffect(() => {
-    setSelectedProfile('');
-  }, [propertyType]);
+    if (!isUserMode) {
+      setSelectedProfile('');
+    }
+  }, [propertyType, isUserMode]);
   
   const [customWard, setCustomWard] = useState('');
   const [showWardPopup, setShowWardPopup] = useState(false);
   const modalContainerRef = useRef<HTMLDivElement>(null);
+
+  // User search state (only used when mode === 'user')
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
   
   // Set max height constraint when modal opens (content can fit naturally up to this limit)
   useLayoutEffect(() => {
@@ -396,67 +412,106 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
   if (!isOpen) return null;
 
   const handleSearch = () => {
-    const filters = {
-      propertyType: propertyType || undefined,
-      profile: selectedProfile || undefined,
-      status: status || undefined,
-      region: selectedRegion || undefined,
-      ward: selectedWard || undefined,
-      minPrice: minPrice ? parseInt(minPrice.replace(/,/g, '')) : undefined,
-      maxPrice: maxPrice ? parseInt(maxPrice.replace(/,/g, '')) : undefined,
-      minArea: minArea ? parseInt(minArea.replace(/,/g, '')) : undefined,
-      maxArea: maxArea ? parseInt(maxArea.replace(/,/g, '')) : undefined,
-      areaUnit: areaUnitValue ? (areaUnitValue.replace('area-', '') as 'sqm' | 'acre') : undefined
-    };
+    if (isUserMode) {
+      // Handle user search
+      const userFilters: UserSearchFilters = {
+        name: userName.trim() || undefined,
+        email: userEmail.trim() || undefined,
+        phone: userPhone.trim() || undefined
+      };
 
-    // Check if any filters are selected (excluding areaUnit as it has a default value)
-    // areaUnit only matters when minArea or maxArea is set
-    const hasFilters = 
-      Boolean(filters.propertyType) ||
-      Boolean(filters.profile) ||
-      Boolean(filters.status) ||
-      Boolean(filters.region) ||
-      Boolean(filters.ward) ||
-      Boolean(filters.minPrice) ||
-      Boolean(filters.maxPrice) ||
-      Boolean(filters.minArea) ||
-      Boolean(filters.maxArea);
+      // Check if any filters are selected
+      const hasFilters = 
+        Boolean(userFilters.name) ||
+        Boolean(userFilters.email) ||
+        Boolean(userFilters.phone);
 
-    // Only apply filters if at least one filter is selected
-    if (!hasFilters) {
-      return;
+      // Only apply filters if at least one filter is selected
+      if (!hasFilters) {
+        return;
+      }
+
+      if (onUserSearch) {
+        onUserSearch(userFilters);
+      }
+      onClose();
+    } else {
+      // Handle property search (existing logic)
+      const filters = {
+        propertyType: propertyType || undefined,
+        profile: selectedProfile || undefined,
+        status: status || undefined,
+        region: selectedRegion || undefined,
+        ward: selectedWard || undefined,
+        minPrice: minPrice ? parseInt(minPrice.replace(/,/g, '')) : undefined,
+        maxPrice: maxPrice ? parseInt(maxPrice.replace(/,/g, '')) : undefined,
+        minArea: minArea ? parseInt(minArea.replace(/,/g, '')) : undefined,
+        maxArea: maxArea ? parseInt(maxArea.replace(/,/g, '')) : undefined,
+        areaUnit: areaUnitValue ? (areaUnitValue.replace('area-', '') as 'sqm' | 'acre') : undefined
+      };
+
+      // Check if any filters are selected (excluding areaUnit as it has a default value)
+      // areaUnit only matters when minArea or maxArea is set
+      const hasFilters = 
+        Boolean(filters.propertyType) ||
+        Boolean(filters.profile) ||
+        Boolean(filters.status) ||
+        Boolean(filters.region) ||
+        Boolean(filters.ward) ||
+        Boolean(filters.minPrice) ||
+        Boolean(filters.maxPrice) ||
+        Boolean(filters.minArea) ||
+        Boolean(filters.maxArea);
+
+      // Only apply filters if at least one filter is selected
+      if (!hasFilters) {
+        return;
+      }
+
+      updateSearchParams(filters);
+      onClose();
     }
-
-    updateSearchParams(filters);
-    onClose();
   };
 
   const handleClearFilters = () => {
-    setPropertyType('');
-    setSelectedPropertyCategory('');
-    setSelectedPropertySubType('');
-    setStatus('');
-    setSelectedRegion('');
-    setSelectedWard('');
-    setSelectedProfile('');
-    setMinPrice('');
-    setMaxPrice('');
-    setMinArea('');
-    setMaxArea('');
-    setAreaUnitValue('area-sqm');
-    setShowAreaDetails(false);
-    
-    // Clear search session when clearing filters
-    setSearchSession(generateSearchSessionId(), null);
-    
-    // Clear URL params by navigating to base path
-    const allowedPages = ['/', '/bookmarks', '/my-properties', '/recently-removed-bookmarks'];
-    const isAllowedPage = allowedPages.includes(pathname);
-
-    if (!isAllowedPage) {
-      router.push('/');
+    if (isUserMode) {
+      // Clear user search filters
+      setUserName('');
+      setUserEmail('');
+      setUserPhone('');
+      if (onUserSearch) {
+        onUserSearch({});
+      }
+      // Don't close modal in user mode
+      return;
     } else {
-      router.push('/');
+      // Clear property search filters (existing logic)
+      setPropertyType('');
+      setSelectedPropertyCategory('');
+      setSelectedPropertySubType('');
+      setStatus('');
+      setSelectedRegion('');
+      setSelectedWard('');
+      setSelectedProfile('');
+      setMinPrice('');
+      setMaxPrice('');
+      setMinArea('');
+      setMaxArea('');
+      setAreaUnitValue('area-sqm');
+      setShowAreaDetails(false);
+      
+      // Clear search session when clearing filters
+      setSearchSession(generateSearchSessionId(), null);
+      
+      // Clear URL params by navigating to base path
+      const allowedPages = ['/', '/bookmarks', '/my-properties', '/recently-removed-bookmarks'];
+      const isAllowedPage = allowedPages.includes(pathname);
+
+      if (!isAllowedPage) {
+        router.push('/');
+      } else {
+        router.push('/');
+      }
     }
     onClose();
   };
@@ -464,9 +519,19 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1280;
   const shouldPositionBelow = isDesktop && searchBarPosition;
 
-  // Get search heading based on current page
+  // Get search heading based on current page or mode
   const getSearchHeading = () => {
-    if (pathname === '/bookmarks') {
+    if (isUserMode) {
+      if (typeof window !== 'undefined') {
+        if ((window as any).__adminCurrentView === 'staff') {
+          return 'Search staff members';
+        }
+        if ((window as any).__staffCurrentView === 'users') {
+          return 'Search all users';
+        }
+      }
+      return 'Search all users';
+    } else if (pathname === '/bookmarks') {
       return 'Search My Bookmarks';
     } else if (pathname === '/my-properties') {
       return 'Search My Properties';
@@ -535,8 +600,56 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
             msOverflowStyle: 'none'
           }}
         >
-          {/* Property Type */}
-          <div className="text-center">
+          {isUserMode ? (
+            /* User Search Fields */
+            <>
+              {/* Name */}
+              <div>
+                <label className="block text-base text-white mb-2 text-center">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                  placeholder="Enter name..."
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-base text-white mb-2 text-center">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                  placeholder="Enter email..."
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-base text-white mb-2 text-center">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                  placeholder="Enter phone number..."
+                  value={userPhone}
+                  onChange={(e) => setUserPhone(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            /* Property Search Fields */
+            <>
+              {/* Property Type */}
+              <div className="text-center">
             <label className="block text-base text-white mb-2">
               Property Type
             </label>
@@ -823,6 +936,8 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
               />
             </div>
           </div>
+        </>
+          )}
         </div>
 
         <div className="w-full mb-1 space-y-3 flex-shrink-0">
@@ -852,8 +967,8 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
         </div>
       </div>
 
-      {/* Custom Ward Popup */}
-      {showWardPopup && (
+      {/* Custom Ward Popup - Only show in property mode */}
+      {!isUserMode && showWardPopup && (
         <div 
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{ 

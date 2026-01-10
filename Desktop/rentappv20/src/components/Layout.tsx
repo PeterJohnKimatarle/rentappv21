@@ -415,14 +415,26 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
     // Calculate search bar position on desktop
     if (searchBarRef.current && typeof window !== 'undefined' && window.innerWidth >= 1280) {
       const rect = searchBarRef.current.getBoundingClientRect();
-      setSearchBarPosition({
+      const position = {
         top: rect.bottom + 8,
         left: rect.left,
         width: rect.width
-      });
+      };
+      setSearchBarPosition(position);
     } else {
       setSearchBarPosition(null);
     }
+    
+    // If on admin page, dispatch event for admin page to update state
+    if (pathname === '/admin') {
+      window.dispatchEvent(new CustomEvent('adminSearchClick', { detail: searchBarPosition }));
+    }
+    
+    // If on staff page, dispatch event for staff page to update state
+    if (pathname === '/staff') {
+      window.dispatchEvent(new CustomEvent('staffSearchClick', { detail: searchBarPosition }));
+    }
+    
     setIsSearchPopupOpen(true);
   };
 
@@ -538,7 +550,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
             onClick={handleSearchClick}
             className={`flex items-center bg-gray-100 rounded-lg px-4 py-2 w-80 cursor-pointer hover:bg-gray-200 transition-colors ${hasActiveFilters ? 'xl:border-2 xl:border-green-500' : ''}`}
           >
-            <Search size={20} className={`mr-3 ${hasActiveFilters ? 'text-green-500 xl:text-gray-500' : 'text-gray-500'}`} />
+            <Search size={20} className={`mr-3 ${hasActiveFilters ? 'text-green-500' : 'text-gray-500'}`} />
             <input
               type="text"
               placeholder={getSearchPlaceholder()}
@@ -595,6 +607,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
                 onSearchClick={handleSearchClick} 
                 onLoginClick={() => setIsLoginPopupOpen(true)}
                 onLogoutClick={() => setShowLogoutConfirm(true)}
+                hasActiveFilters={hasActiveFilters}
                 onInstallClick={() => setShowInstallModal(true)}
                 onAppInfoClick={() => setShowAppInfoModal(true)}
                 onHomeClick={() => {
@@ -624,7 +637,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
       <div className="flex-1 flex flex-col lg:flex-row min-w-0 pt-14">
         {/* Left Panel - Navigation (Desktop) */}
         <div className="hidden xl:block xl:w-64 xl:min-w-64 bg-white border-b xl:border-b-0 xl:border-r border-gray-200 flex-shrink-0 xl:fixed xl:top-11 xl:left-0 xl:overflow-y-auto xl:z-20" style={{ overflowAnchor: 'none', height: 'calc(100vh - 2.75rem)' }}>
-          <Navigation onSearchClick={handleSearchClick} onLoginClick={() => setIsLoginPopupOpen(true)} onLogoutClick={() => setShowLogoutConfirm(true)} onInstallClick={() => setShowInstallModal(true)} onAppInfoClick={() => setShowAppInfoModal(true)} />
+          <Navigation onSearchClick={handleSearchClick} onLoginClick={() => setIsLoginPopupOpen(true)} onLogoutClick={() => setShowLogoutConfirm(true)} onInstallClick={() => setShowInstallModal(true)} onAppInfoClick={() => setShowAppInfoModal(true)} hasActiveFilters={hasActiveFilters} />
         </div>
 
         {/* Center Panel - Main Content */}
@@ -763,6 +776,25 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
           setSearchBarPosition(null);
         }}
         searchBarPosition={searchBarPosition}
+        mode={
+          (pathname === '/admin' && typeof window !== 'undefined' && ((window as any).__adminCurrentView === 'users' || (window as any).__adminCurrentView === 'staff')) ||
+          (pathname === '/staff' && typeof window !== 'undefined' && (window as any).__staffCurrentView === 'users')
+            ? 'user' 
+            : 'property'
+        }
+        onUserSearch={
+          (pathname === '/admin' && typeof window !== 'undefined' && ((window as any).__adminCurrentView === 'users' || (window as any).__adminCurrentView === 'staff')) ||
+          (pathname === '/staff' && typeof window !== 'undefined' && (window as any).__staffCurrentView === 'users')
+            ? ((filters) => {
+                // Dispatch event for admin/staff page to handle user search
+                if (pathname === '/admin') {
+                  window.dispatchEvent(new CustomEvent('adminUserSearch', { detail: filters }));
+                } else if (pathname === '/staff') {
+                  window.dispatchEvent(new CustomEvent('staffUserSearch', { detail: filters }));
+                }
+              })
+            : undefined
+        }
       />
 
       {/* Login Popup */}
