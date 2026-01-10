@@ -1439,15 +1439,6 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
             height: '100%',
             backgroundColor: 'rgba(0, 0, 0, 0.5)'
           }}
-          onClick={() => {
-            setShowNotesModal(false);
-            setNotes('');
-            // Reopen property actions modal if notes was opened from there
-            if (wasOpenedFromActionsModal) {
-              setShowThreeDotsModal(true);
-              setWasOpenedFromActionsModal(false);
-            }
-          }}
         >
           <div
             className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"

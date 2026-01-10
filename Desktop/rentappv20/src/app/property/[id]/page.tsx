@@ -782,7 +782,7 @@ export default function PropertyDetailsPage() {
                       e.stopPropagation();
                       // Only allow logged-in users to book
                       if (!isAuthenticated) {
-                        setIsLoginPopupOpen(true);
+                        alert('Please login to book this property.');
                         return;
                       }
                       setBookingModalType('book');
@@ -807,7 +807,7 @@ export default function PropertyDetailsPage() {
                       e.stopPropagation();
                       // Only allow logged-in users to confirm status
                       if (!isAuthenticated) {
-                        setIsLoginPopupOpen(true);
+                        alert('Please login to confirm status of this property.');
                         return;
                       }
                       setBookingModalType('status');
@@ -1047,6 +1047,11 @@ export default function PropertyDetailsPage() {
             ) : property.status === 'available' ? (
               <button
                 onClick={() => {
+                  // Only allow logged-in users to book
+                  if (!isAuthenticated) {
+                    alert('Please login to book this property.');
+                    return;
+                  }
                   setBookingModalType('book');
                   setShowBookingModal(true);
                 }}
@@ -1066,6 +1071,11 @@ export default function PropertyDetailsPage() {
             ) : (
               <button
                 onClick={() => {
+                  // Only allow logged-in users to confirm status
+                  if (!isAuthenticated) {
+                    alert('Please login to confirm status of this property.');
+                    return;
+                  }
                   setBookingModalType('status');
                   setShowBookingModal(true);
                 }}
@@ -1229,15 +1239,6 @@ export default function PropertyDetailsPage() {
             minHeight: '100vh',
             height: '100%',
             backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }}
-                onClick={() => {
-            setShowNotesModal(false);
-            setNotes('');
-            // Reopen property actions modal if notes was opened from there
-            if (wasOpenedFromActionsModal) {
-              setShowThreeDotsModal(true);
-              setWasOpenedFromActionsModal(false);
-            }
           }}
         >
           <div
@@ -2246,14 +2247,6 @@ export default function PropertyDetailsPage() {
             minHeight: '100vh',
             height: '100%',
             backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }}
-          onClick={() => {
-            setShowUserNotesModal(false);
-            setUserNotes('');
-            // Reopen uploader profile modal
-            if (uploaderUser) {
-              setShowUploaderProfileModal(true);
-            }
           }}
         >
           <div

@@ -409,6 +409,24 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
       areaUnit: areaUnitValue ? (areaUnitValue.replace('area-', '') as 'sqm' | 'acre') : undefined
     };
 
+    // Check if any filters are selected (excluding areaUnit as it has a default value)
+    // areaUnit only matters when minArea or maxArea is set
+    const hasFilters = 
+      Boolean(filters.propertyType) ||
+      Boolean(filters.profile) ||
+      Boolean(filters.status) ||
+      Boolean(filters.region) ||
+      Boolean(filters.ward) ||
+      Boolean(filters.minPrice) ||
+      Boolean(filters.maxPrice) ||
+      Boolean(filters.minArea) ||
+      Boolean(filters.maxArea);
+
+    // Only apply filters if at least one filter is selected
+    if (!hasFilters) {
+      return;
+    }
+
     updateSearchParams(filters);
     onClose();
   };
