@@ -633,11 +633,16 @@ export default function PropertyDetailsPage() {
             </div>
             
             {/* Area Display - Below Status Badge */}
-            {property.area > 0 && (
-              <div className="absolute top-[2.75rem] left-2 px-3 xl:px-4 py-0.5 xl:py-1 rounded-lg text-sm font-semibold border-2 border-black bg-white text-black z-20 flex items-center justify-center">
-                {property.area.toLocaleString()} sqm
-              </div>
-            )}
+            {property.area > 0 && (() => {
+              const areaUnit = 'areaUnit' in property ? property.areaUnit || 'sqm' : 'sqm';
+              const areaValue = typeof property.area === 'number' ? property.area : parseInt(String(property.area || '0').replace(/,/g, '')) || 0;
+              const unit = areaUnit === 'acre' ? 'Acres' : 'sqm';
+              return (
+                <div className="absolute top-[2.75rem] left-2 px-3 xl:px-4 py-0.5 xl:py-1 rounded-lg text-sm font-semibold border-2 border-black bg-white text-black z-20 flex items-center justify-center">
+                  {areaValue.toLocaleString()} {unit}
+                </div>
+              );
+            })()}
 
             {/* Share Icon */}
             <div 

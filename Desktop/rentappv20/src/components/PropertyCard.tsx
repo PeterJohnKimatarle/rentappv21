@@ -754,11 +754,16 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
               {property.status === 'available' ? 'Available' : 'Occupied'}
             </div>
             {/* Area Display - Below Status Banner */}
-            {property.area > 0 && (
-              <div className="absolute top-[1.75rem] xl:top-[2rem] left-1 px-1 py-0 xl:px-1 xl:py-0 rounded text-xs xl:text-sm font-medium xl:font-semibold border-[1.5px] border-black bg-white text-gray-900 z-10 flex items-center justify-center">
-                {property.area.toLocaleString()} sqm
-              </div>
-            )}
+            {property.area > 0 && (() => {
+              const areaUnit = 'areaUnit' in property ? property.areaUnit || 'sqm' : 'sqm';
+              const areaValue = typeof property.area === 'number' ? property.area : parseInt(String(property.area || '0').replace(/,/g, '')) || 0;
+              const unit = areaUnit === 'acre' ? 'Acres' : 'sqm';
+              return (
+                <div className="absolute top-[1.75rem] xl:top-[2rem] left-1 px-1 py-0 xl:px-1 xl:py-0 rounded text-xs xl:text-sm font-medium xl:font-semibold border-[1.5px] border-black bg-white text-gray-900 z-10 flex items-center justify-center">
+                  {areaValue.toLocaleString()} {unit}
+                </div>
+              );
+            })()}
             {/* Image Counter - Mobile: Always visible with icon + count */}
             <div className="flex xl:hidden absolute bottom-1 left-1 px-2 py-1 rounded-md flex items-center space-x-0.5 text-white text-sm" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
               {/* eslint-disable-next-line jsx-a11y/alt-text */}

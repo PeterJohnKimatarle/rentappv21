@@ -16,6 +16,9 @@ type SearchFilters = {
   ward?: string;
   minPrice?: number; // Minimum price filter
   maxPrice?: number; // Maximum price filter
+  minArea?: number; // Minimum area filter
+  maxArea?: number; // Maximum area filter
+  areaUnit?: 'sqm' | 'acre' | ''; // Unit for area filtering (default: sqm)
 };
 
 // Helper function to parse filters from URL string (synchronous, no hooks)
@@ -31,6 +34,9 @@ const parseFiltersFromURLString = (search: string): SearchFilters | null => {
   const ward = params.get('ward');
   const minPrice = params.get('minPrice');
   const maxPrice = params.get('maxPrice');
+  const minArea = params.get('minArea');
+  const maxArea = params.get('maxArea');
+  const areaUnit = params.get('areaUnit');
 
   if (propertyType) {
     filters.propertyType = propertyType;
@@ -65,6 +71,24 @@ const parseFiltersFromURLString = (search: string): SearchFilters | null => {
       filters.maxPrice = parsed;
       hasFilters = true;
     }
+  }
+  if (minArea) {
+    const parsed = parseInt(minArea, 10);
+    if (!isNaN(parsed)) {
+      filters.minArea = parsed;
+      hasFilters = true;
+    }
+  }
+  if (maxArea) {
+    const parsed = parseInt(maxArea, 10);
+    if (!isNaN(parsed)) {
+      filters.maxArea = parsed;
+      hasFilters = true;
+    }
+  }
+  if (areaUnit && (areaUnit === 'sqm' || areaUnit === 'acre')) {
+    filters.areaUnit = areaUnit as 'sqm' | 'acre';
+    hasFilters = true;
   }
 
   return hasFilters ? filters : null;
@@ -161,6 +185,41 @@ export default function Home() {
           ? property.price <= filters.maxPrice
           : true;
 
+        // Area filtering with unit conversion
+        const matchesArea = (() => {
+          if (!filters.minArea && !filters.maxArea) return true;
+          if (!property.area || property.area <= 0) return false;
+
+          const filterUnit = filters.areaUnit || 'sqm';
+          const propertyAreaUnit = 'areaUnit' in property ? property.areaUnit || 'sqm' : 'sqm';
+          const propertyAreaValue = typeof property.area === 'number' ? property.area : parseInt(String(property.area || '0').replace(/,/g, '')) || 0;
+
+          // Convert property area to filter unit for comparison
+          let propertyAreaInFilterUnit: number;
+          if (propertyAreaUnit === filterUnit) {
+            // Same unit, no conversion needed
+            propertyAreaInFilterUnit = propertyAreaValue;
+          } else if (propertyAreaUnit === 'acre' && filterUnit === 'sqm') {
+            // Convert acres to sqm (1 acre = 4046.86 sqm)
+            propertyAreaInFilterUnit = propertyAreaValue * 4046.86;
+          } else if (propertyAreaUnit === 'sqm' && filterUnit === 'acre') {
+            // Convert sqm to acres
+            propertyAreaInFilterUnit = propertyAreaValue / 4046.86;
+          } else {
+            propertyAreaInFilterUnit = propertyAreaValue;
+          }
+
+          const matchesMinArea = filters.minArea
+            ? propertyAreaInFilterUnit >= filters.minArea
+            : true;
+
+          const matchesMaxArea = filters.maxArea
+            ? propertyAreaInFilterUnit <= filters.maxArea
+            : true;
+
+          return matchesMinArea && matchesMaxArea;
+        })();
+
         const matchesStatus = filters.status ? property.status === filters.status : true;
 
         const matchesRegion = filters.region
@@ -169,7 +228,7 @@ export default function Home() {
 
         const matchesWard = filters.ward ? normalise(property.ward) === normalise(filters.ward) : true;
 
-        return matchesPropertyType && matchesStatus && matchesRegion && matchesWard && matchesProfile && matchesMinPrice && matchesMaxPrice;
+        return matchesPropertyType && matchesStatus && matchesRegion && matchesWard && matchesProfile && matchesMinPrice && matchesMaxPrice && matchesArea;
       });
     },
     []
@@ -192,6 +251,9 @@ export default function Home() {
     const ward = searchParams.get('ward');
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
+    const minArea = searchParams.get('minArea');
+    const maxArea = searchParams.get('maxArea');
+    const areaUnit = searchParams.get('areaUnit');
 
     if (propertyType) {
       filters.propertyType = propertyType;
@@ -226,6 +288,24 @@ export default function Home() {
         filters.maxPrice = parsed;
         hasFilters = true;
       }
+    }
+    if (minArea) {
+      const parsed = parseInt(minArea, 10);
+      if (!isNaN(parsed)) {
+        filters.minArea = parsed;
+        hasFilters = true;
+      }
+    }
+    if (maxArea) {
+      const parsed = parseInt(maxArea, 10);
+      if (!isNaN(parsed)) {
+        filters.maxArea = parsed;
+        hasFilters = true;
+      }
+    }
+    if (areaUnit && (areaUnit === 'sqm' || areaUnit === 'acre')) {
+      filters.areaUnit = areaUnit as 'sqm' | 'acre';
+      hasFilters = true;
     }
 
     return hasFilters ? filters : null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { generateSearchSessionId, setSearchSession, getSearchSessionId, getSearchFilters } from '@/utils/searchSession';
 import { 
@@ -9,6 +9,7 @@ import {
   hasSubCategories,
   formatPropertyType
 } from '@/utils/propertyTypes';
+import { ChevronRight } from 'lucide-react';
 
 // Ward data organized by region (exact match from listing page)
 const wardsByRegion = {
@@ -59,6 +60,9 @@ const initializeStateFromFilters = (filters: {
   ward?: string;
   minPrice?: number;
   maxPrice?: number;
+  minArea?: number;
+  maxArea?: number;
+  areaUnit?: 'sqm' | 'acre' | '';
 } | null) => {
   return {
     propertyType: filters?.propertyType || '',
@@ -68,6 +72,9 @@ const initializeStateFromFilters = (filters: {
     ward: filters?.ward || '',
     minPrice: filters?.minPrice ? filters.minPrice.toLocaleString() : '',
     maxPrice: filters?.maxPrice ? filters.maxPrice.toLocaleString() : '',
+    minArea: filters?.minArea ? filters.minArea.toLocaleString() : '',
+    maxArea: filters?.maxArea ? filters.maxArea.toLocaleString() : '',
+    areaUnit: filters?.areaUnit || 'sqm',
   };
 };
 
@@ -173,6 +180,47 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
     return '';
   });
 
+  const [showAreaDetails, setShowAreaDetails] = useState(false);
+
+  const [minArea, setMinArea] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const sessionId = getSearchSessionId();
+      if (sessionId) {
+        const sessionFilters = getSearchFilters();
+        if (sessionFilters?.minArea) {
+          return sessionFilters.minArea.toLocaleString();
+        }
+      }
+    }
+    return '';
+  });
+
+  const [maxArea, setMaxArea] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const sessionId = getSearchSessionId();
+      if (sessionId) {
+        const sessionFilters = getSearchFilters();
+        if (sessionFilters?.maxArea) {
+          return sessionFilters.maxArea.toLocaleString();
+        }
+      }
+    }
+    return '';
+  });
+
+  const [areaUnitValue, setAreaUnitValue] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const sessionId = getSearchSessionId();
+      if (sessionId) {
+        const sessionFilters = getSearchFilters();
+        if (sessionFilters?.areaUnit) {
+          return `area-${sessionFilters.areaUnit}`;
+        }
+      }
+    }
+    return 'area-sqm'; // Default to sqm
+  });
+
   // Sync input fields with search session when modal opens (only if session exists)
   // Do NOT sync from URL params - that would restore values after refresh
   useEffect(() => {
@@ -193,6 +241,9 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
         const newWard = filters.ward || '';
         const newMinPrice = filters.minPrice ? filters.minPrice.toLocaleString() : '';
         const newMaxPrice = filters.maxPrice ? filters.maxPrice.toLocaleString() : '';
+        const newMinArea = filters.minArea ? filters.minArea.toLocaleString() : '';
+        const newMaxArea = filters.maxArea ? filters.maxArea.toLocaleString() : '';
+        const newAreaUnit = filters.areaUnit || 'sqm';
         
         if (newPropertyType !== propertyType) setPropertyType(newPropertyType);
         if (newProfile !== selectedProfile) setSelectedProfile(newProfile);
@@ -201,6 +252,11 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
         if (newWard !== selectedWard) setSelectedWard(newWard);
         if (newMinPrice !== minPrice) setMinPrice(newMinPrice);
         if (newMaxPrice !== maxPrice) setMaxPrice(newMaxPrice);
+        if (newMinArea !== minArea) setMinArea(newMinArea);
+        if (newMaxArea !== maxArea) setMaxArea(newMaxArea);
+        if (newAreaUnit !== areaUnitValue.replace('area-', '')) {
+          setAreaUnitValue(`area-${newAreaUnit}`);
+        }
       }
     }
   }, [isOpen]); // Only run when modal opens/closes
@@ -209,8 +265,23 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
   useEffect(() => {
     setSelectedProfile('');
   }, [propertyType]);
+  
   const [customWard, setCustomWard] = useState('');
   const [showWardPopup, setShowWardPopup] = useState(false);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Set max height constraint when modal opens (content can fit naturally up to this limit)
+  useLayoutEffect(() => {
+    if (isOpen && modalContainerRef.current) {
+      // Calculate positioning (same logic as in render)
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1280;
+      const shouldPositionBelow = isDesktop && searchBarPosition;
+      
+      // Set only maxHeight - container will fit content up to this limit, then scroll
+      const maxHeight = shouldPositionBelow ? 'calc(100vh - 80px)' : '80vh';
+      modalContainerRef.current.style.maxHeight = maxHeight;
+    }
+  }, [isOpen, searchBarPosition]);
   
   // Touch event handlers for swipe gestures - using refs for performance (like menu modal)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -274,6 +345,9 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
     ward?: string;
     minPrice?: number;
     maxPrice?: number;
+    minArea?: number;
+    maxArea?: number;
+    areaUnit?: 'sqm' | 'acre' | '';
   }) => {
     const params = new URLSearchParams();
     
@@ -284,6 +358,9 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
     if (filters.ward) params.set('ward', filters.ward);
     if (filters.minPrice) params.set('minPrice', filters.minPrice.toString());
     if (filters.maxPrice) params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.minArea) params.set('minArea', filters.minArea.toString());
+    if (filters.maxArea) params.set('maxArea', filters.maxArea.toString());
+    if (filters.areaUnit) params.set('areaUnit', filters.areaUnit);
 
     const queryString = params.toString();
     const newUrl = queryString ? `/?${queryString}` : '/';
@@ -326,7 +403,10 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
       region: selectedRegion || undefined,
       ward: selectedWard || undefined,
       minPrice: minPrice ? parseInt(minPrice.replace(/,/g, '')) : undefined,
-      maxPrice: maxPrice ? parseInt(maxPrice.replace(/,/g, '')) : undefined
+      maxPrice: maxPrice ? parseInt(maxPrice.replace(/,/g, '')) : undefined,
+      minArea: minArea ? parseInt(minArea.replace(/,/g, '')) : undefined,
+      maxArea: maxArea ? parseInt(maxArea.replace(/,/g, '')) : undefined,
+      areaUnit: areaUnitValue ? (areaUnitValue.replace('area-', '') as 'sqm' | 'acre') : undefined
     };
 
     updateSearchParams(filters);
@@ -343,6 +423,10 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
     setSelectedProfile('');
     setMinPrice('');
     setMaxPrice('');
+    setMinArea('');
+    setMaxArea('');
+    setAreaUnitValue('area-sqm');
+    setShowAreaDetails(false);
     
     // Clear search session when clearing filters
     setSearchSession(generateSearchSessionId(), null);
@@ -371,7 +455,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
     } else if (pathname === '/recently-removed-bookmarks') {
       return 'Search Removed Bookmarks';
     } else {
-      return 'Search Properties';
+      return 'Filter Properties';
     }
   };
 
@@ -395,10 +479,17 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
       onTouchEnd={onTouchEnd}
     >
       <div
-        className={`rounded-xl max-w-xs w-full py-4 px-3 shadow-lg ${shouldPositionBelow ? 'max-h-[calc(100vh-80px)] overflow-y-auto' : 'overflow-hidden'}`}
+        ref={modalContainerRef}
+        className={`rounded-xl max-w-xs w-full px-3 pt-2 pb-2 shadow-lg flex flex-col overflow-hidden`}
          style={{
            backgroundColor: '#0071c2',
            pointerEvents: 'auto',
+           display: 'flex',
+           flexDirection: 'column',
+           maxHeight: shouldPositionBelow ? 'calc(100vh - 80px)' : '80vh',
+           height: 'auto',
+           boxSizing: 'border-box',
+           overflow: 'hidden',
            ...(shouldPositionBelow && searchBarPosition ? {
              position: 'fixed',
              top: `${searchBarPosition.top}px`,
@@ -410,14 +501,22 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-center mb-6 w-full relative">
+        <div className="flex items-center justify-center mb-3 mt-0 w-full relative flex-shrink-0">
           <h1 className="text-2xl sm:text-[1.7rem] font-bold text-white">
             {getSearchHeading()}
           </h1>
         </div>
 
-        {/* Search Form - Stacked Vertically */}
-        <div className="space-y-3 mb-5">
+        {/* Search Form - Stacked Vertically with Scroll when needed */}
+        <div 
+          className="space-y-3 mb-5 overflow-x-hidden overflow-y-auto flex-1 min-h-0 hide-scrollbar"
+          style={{ 
+            overflowX: 'hidden',
+            overflowY: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
           {/* Property Type */}
           <div className="text-center">
             <label className="block text-base text-white mb-2">
@@ -481,8 +580,98 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
               )}
           </div>
 
+          {/* Area Details Collapsible Section */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowAreaDetails(!showAreaDetails)}
+              className="flex items-center gap-2 w-fit text-sm font-medium cursor-pointer ml-auto"
+            >
+              <span className="text-blue-300/60">Advanced</span>
+              <ChevronRight
+                size={16}
+                className={`text-blue-300/60 transition-transform duration-200 ${showAreaDetails ? 'rotate-90' : ''}`}
+              />
+            </button>
+          </div>
+
+          {/* Collapsible Content - Area Filters */}
+          {showAreaDetails && (
+            <div className="min-w-0">
+              <div className="grid grid-cols-2 gap-2 mt-3 mb-2 min-w-0">
+                <div>
+                  <label className="block text-base text-white mb-2 text-center">
+                    Min{areaUnitValue ? (areaUnitValue.replace('area-', '') === 'acre' ? ' (Acres)' : ' (sqm)') : ' (sqm)'}
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                    placeholder="---"
+                    value={minArea}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/[^\d]/g, '');
+                      if (value) {
+                        value = parseInt(value).toLocaleString();
+                      }
+                      setMinArea(value);
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-base text-white mb-2 text-center">
+                    Max{areaUnitValue ? (areaUnitValue.replace('area-', '') === 'acre' ? ' (Acres)' : ' (sqm)') : ' (sqm)'}
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                    placeholder="---"
+                    value={maxArea}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/[^\d]/g, '');
+                      if (value) {
+                        value = parseInt(value).toLocaleString();
+                      }
+                      setMaxArea(value);
+                    }}
+                  />
+                </div>
+                {/* Area Unit Selector - Similar to Rental Rate */}
+                <div className="col-span-2 flex justify-end">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 w-fit text-sm font-medium text-white cursor-pointer bg-transparent border-none outline-none ml-auto"
+                      style={{ backgroundColor: 'transparent' }}
+                      onClick={(e) => {
+                        const select = e.currentTarget.nextElementSibling as HTMLSelectElement;
+                        if (select) select.click();
+                      }}
+                    >
+                      <span>Area unit</span>
+                      <ChevronRight
+                        size={16}
+                        className="text-white"
+                      />
+                    </button>
+                    <select
+                      value={areaUnitValue}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setAreaUnitValue(value);
+                      }}
+                      className="absolute inset-0 w-fit h-full opacity-0 cursor-pointer"
+                    >
+                      <option value="area-sqm" className="text-gray-800">Area (Sqm)</option>
+                      <option value="area-acre" className="text-gray-800">Area (Acres)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Status - Full Width */}
-          <div className="col-span-4">
+          <div>
             <label className="block text-base text-white mb-2 text-center">
               Status
             </label>
@@ -498,7 +687,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
           </div>
 
           {/* Region and Ward - Facing each other */}
-          <div className="col-span-4 flex justify-between items-end gap-4">
+          <div className="flex justify-between items-end gap-4">
             <div className="flex-1">
               <label className="block text-base text-white mb-2 text-center">
                 Region
@@ -578,7 +767,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
           </div>
 
           {/* Price Range - Min and Max facing each other */}
-          <div className="col-span-4 flex justify-between items-end gap-4">
+          <div className="flex justify-between items-end gap-4">
             <div className="flex-1">
               <label className="block text-base text-white mb-2 text-center">
                 Min Price
@@ -618,7 +807,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
           </div>
         </div>
 
-        <div className="w-full mb-3 space-y-3">
+        <div className="w-full mb-1 space-y-3 flex-shrink-0">
           <button
             onClick={handleSearch}
             className="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg font-semibold transition-colors text-center"

@@ -87,6 +87,7 @@ interface Property {
   ownerName?: string;
   bathrooms?: string;
   area?: string;
+  areaUnit?: 'sqm' | 'acre' | '';
   propertyTitle?: string;
   pricingUnit?: 'month' | 'night' | 'day' | 'hour' | '';
 }
@@ -117,6 +118,7 @@ export default function ListPropertyPage() {
 
   const [activeTab, setActiveTab] = useState<'basic' | 'details'>('basic');
   const [rentalRateValue, setRentalRateValue] = useState('');
+  const [areaUnitValue, setAreaUnitValue] = useState('area-sqm'); // Default to sqm
 
   // Form state
   const [formData, setFormData] = useState({
@@ -134,6 +136,7 @@ export default function ListPropertyPage() {
     description: '',
     bathrooms: '',
     area: '',
+    areaUnit: 'sqm' as 'sqm' | 'acre' | '',
     pricingUnit: '' as 'month' | 'night' | 'day' | 'hour' | ''
   });
 
@@ -145,6 +148,12 @@ export default function ListPropertyPage() {
       setRentalRateValue('');
     }
   }, [formData.pricingUnit]);
+
+  // Sync areaUnitValue with formData.areaUnit
+  useEffect(() => {
+    const unit = formData.areaUnit || 'sqm';
+    setAreaUnitValue(`area-${unit}`);
+  }, [formData.areaUnit]);
 
   // Collapsible section state
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
@@ -474,6 +483,7 @@ export default function ListPropertyPage() {
       ownerName: user.name,
       bathrooms: formData.bathrooms || undefined,
       area: formData.area || undefined,
+      areaUnit: formData.areaUnit || undefined,
       propertyTitle: formData.propertyTitle || undefined,
       description: formData.description || undefined,
       pricingUnit: formData.pricingUnit
@@ -513,6 +523,7 @@ export default function ListPropertyPage() {
         propertyTitle: '', // Reset property title
         bathrooms: '',
         area: '',
+        areaUnit: 'sqm',
         pricingUnit: 'month'
       });
       setSelectedRegion('');
@@ -743,7 +754,7 @@ export default function ListPropertyPage() {
                        </div>
                        <div>
                          <label className="block text-base font-bold text-white mb-2 text-center">
-                           Area (sqm)
+                           Area{areaUnitValue ? (areaUnitValue.replace('area-', '') === 'acre' ? ' (Acres)' : ' (sqm)') : ' (sqm)'}
                          </label>
                          <input
                            type="text"
@@ -758,6 +769,40 @@ export default function ListPropertyPage() {
                              handleInputChange('area', value);
                            }}
                          />
+                       </div>
+                       {/* Area Unit Selector - Similar to Rental Rate */}
+                       <div className="col-span-2 flex justify-end">
+                         <div className="relative">
+                           <button
+                             type="button"
+                             className="flex items-center gap-2 w-fit text-sm font-medium text-white cursor-pointer bg-transparent border-none outline-none ml-auto"
+                             style={{ backgroundColor: 'transparent' }}
+                             onClick={(e) => {
+                               const select = e.currentTarget.nextElementSibling as HTMLSelectElement;
+                               if (select) select.click();
+                             }}
+                           >
+                             <span>Area unit</span>
+                             <ChevronRight
+                               size={16}
+                               className="text-white"
+                             />
+                           </button>
+                             <select
+                               value={areaUnitValue}
+                               onChange={(e) => {
+                                 const value = e.target.value;
+                                 setAreaUnitValue(value);
+                                 const areaUnit = value ? value.replace('area-', '') as 'sqm' | 'acre' : '';
+                                 handleInputChange('areaUnit' as keyof typeof formData, areaUnit);
+                               }}
+                               className="absolute inset-0 w-fit h-full opacity-0 cursor-pointer"
+                             >
+                               <option value="" className="text-gray-800">---</option>
+                               <option value="area-sqm" className="text-gray-800">Area (Sqm)</option>
+                               <option value="area-acre" className="text-gray-800">Area (Acres)</option>
+                             </select>
+                         </div>
                        </div>
                      </div>
                    </div>
@@ -1171,6 +1216,7 @@ export default function ListPropertyPage() {
                       propertyTitle: '',
                       bathrooms: '',
                       area: '',
+                      areaUnit: '',
                       pricingUnit: 'month'
                   });
                    setSelectedRegion('');
@@ -1323,6 +1369,7 @@ export default function ListPropertyPage() {
                       propertyTitle: '',
                       bathrooms: '',
                       area: '',
+                      areaUnit: '',
                       pricingUnit: 'month'
                   });
                     setSelectedRegion('');

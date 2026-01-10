@@ -23,6 +23,7 @@ export interface PropertyFormData {
   bathrooms?: string;
   squareFootage?: string;
   area?: string;
+  areaUnit?: 'sqm' | 'acre' | '';
   amenities: string[];
   images: string[];
   contactName?: string;
@@ -54,6 +55,7 @@ export interface DisplayProperty {
   bedrooms: number;
   bathrooms: number;
   area: number;
+  areaUnit?: 'sqm' | 'acre' | '';
   plan: '3+' | '6+' | '12+' | 'flexible';
   pricingUnit?: 'month' | 'night' | 'day' | 'hour' | '';
   updatedAt: string;
@@ -128,6 +130,7 @@ export const convertFormDataToDisplayProperty = (formData: PropertyFormData): Di
     bedrooms: bedrooms,
     bathrooms: bathrooms,
     area: areaValue,
+    areaUnit: formData.areaUnit || 'sqm', // Default to sqm for backward compatibility
     plan: formData.paymentPlan as '3+' | '6+' | '12+' | 'flexible',
     pricingUnit: formData.pricingUnit || 'month',
     updatedAt: formData.updatedAt || formData.createdAt,

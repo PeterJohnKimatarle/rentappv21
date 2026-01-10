@@ -145,6 +145,7 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
   const [selectedPropertySubType, setSelectedPropertySubType] = useState('');
   const [activeTab, setActiveTab] = useState<'basic' | 'details'>('basic');
   const [rentalRateValue, setRentalRateValue] = useState('');
+  const [areaUnitValue, setAreaUnitValue] = useState('');
 
   // Collapsible section state
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
@@ -240,10 +241,29 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
   useEffect(() => {
     if (property) {
       try {
+        // Convert area from string format if needed
+        // PropertyFormData.area is string | undefined, but property might come from DisplayProperty with area: number
+        let areaValue: string = '';
+        const rawArea = (property as unknown as { area?: string | number | undefined }).area;
+        
+        if (rawArea !== undefined && rawArea !== null && rawArea !== '') {
+          if (typeof rawArea === 'number') {
+            areaValue = rawArea > 0 ? rawArea.toLocaleString() : '';
+          } else if (typeof rawArea === 'string') {
+            const numericValue = parseInt(rawArea.replace(/,/g, ''));
+            if (!isNaN(numericValue) && numericValue > 0) {
+              areaValue = numericValue.toLocaleString();
+            } else {
+              areaValue = '';
+            }
+          }
+        }
+
         // Ensure pricingUnit has a default value if missing
         const propertyWithDefaults = {
           ...property,
-          pricingUnit: property.pricingUnit || 'month'
+          pricingUnit: property.pricingUnit || 'month',
+          area: areaValue
         };
         setFormData(propertyWithDefaults);
         setOriginalProperty(property);
@@ -278,16 +298,31 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
         console.log('🎯 EditPropertyModal - Final rentalRateValue:', rentalRateValue);
         setRentalRateValue(rentalRateValue);
 
-        // Reset staged changes
-        setStagedFormData(null);
-        setStagedRegion('');
-        setStagedWard('');
-        setStagedCustomWard('');
-        setStagedMainImage('');
-        setStagedAdditionalImages([]);
+        // Initialize area unit value from existing property (default to sqm if no areaUnit)
+        const areaUnit = property.areaUnit || 'sqm';
+        const areaUnitValue = areaUnit.startsWith('area-') ? areaUnit : `area-${areaUnit}`;
+        setAreaUnitValue(areaUnitValue);
       } catch (error) {
         console.error('Error initializing edit form:', error);
       }
+    }
+  }, [property]);
+
+  // Sync areaUnitValue with formData.areaUnit
+  useEffect(() => {
+    const unit = formData?.areaUnit || 'sqm';
+    setAreaUnitValue(`area-${unit}`);
+  }, [formData?.areaUnit]);
+
+  // Reset staged changes
+  useEffect(() => {
+    if (!isOpen) {
+      setStagedFormData(null);
+      setStagedRegion('');
+      setStagedWard('');
+      setStagedCustomWard('');
+      setStagedMainImage('');
+      setStagedAdditionalImages([]);
     }
   }, [property]);
 
@@ -296,7 +331,9 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
 
   const handleInputChange = (field: keyof PropertyFormData, value: string | string[]) => {
     if (!formData) return;
-    // Stage the change - don't update formData directly
+    // Update formData directly for immediate feedback
+    setFormData(prev => prev ? { ...prev, [field]: value } : null);
+    // Also stage the change
     setStagedFormData(prev => {
       const base = prev || formData;
       return { ...base, [field]: value };
@@ -640,7 +677,7 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
 
               {/* Collapsible Content - CRITICAL: Must be in SEPARATE container to prevent button layout shift */}
               {/* NEVER merge this back into the button container above! Keep them separate! */}
-              <div className={`col-span-4 overflow-hidden transition-all duration-300 ease-in-out ${showPropertyDetails ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`col-span-4 overflow-hidden transition-all duration-300 ease-in-out ${showPropertyDetails ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="grid grid-cols-2 gap-2 mt-3 mb-2">
                   <div>
                     <label className="block text-base font-bold text-white mb-2 text-center">
@@ -660,13 +697,13 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
                   </div>
                   <div>
                     <label className="block text-base font-bold text-white mb-2 text-center">
-                      Area (sqm)
+                      Area{areaUnitValue ? (areaUnitValue.replace('area-', '') === 'acre' ? ' (Acres)' : ' (sqm)') : ' (sqm)'}
                     </label>
                     <input
                       type="text"
                       className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100"
                       placeholder="---"
-                      value={formData.area}
+                      value={formData?.area ?? ''}
                       onChange={(e) => {
                         let value = e.target.value.replace(/[^\d]/g, '');
                         if (value) {
@@ -675,6 +712,40 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
                         handleInputChange('area', value);
                       }}
                     />
+                  </div>
+                  {/* Area Unit Selector - Similar to Rental Rate */}
+                  <div className="col-span-2 flex justify-end">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 w-fit text-sm font-medium text-white cursor-pointer bg-transparent border-none outline-none ml-auto"
+                        style={{ backgroundColor: 'transparent' }}
+                        onClick={(e) => {
+                          const select = e.currentTarget.nextElementSibling as HTMLSelectElement;
+                          if (select) select.click();
+                        }}
+                      >
+                        <span>Area unit</span>
+                        <ChevronRight
+                          size={16}
+                          className="text-white"
+                        />
+                      </button>
+                      <select
+                        value={areaUnitValue}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setAreaUnitValue(value);
+                          const areaUnit = value ? value.replace('area-', '') as 'sqm' | 'acre' : '';
+                          handleInputChange('areaUnit' as keyof typeof formData, areaUnit);
+                        }}
+                        className="absolute inset-0 w-fit h-full opacity-0 cursor-pointer"
+                      >
+                        <option value="" className="text-gray-800">---</option>
+                        <option value="area-sqm" className="text-gray-800">Area (Sqm)</option>
+                        <option value="area-acre" className="text-gray-800">Area (Acres)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>

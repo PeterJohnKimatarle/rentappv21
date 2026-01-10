@@ -13,6 +13,9 @@ let searchFilters: {
   ward?: string;
   minPrice?: number;
   maxPrice?: number;
+  minArea?: number;
+  maxArea?: number;
+  areaUnit?: 'sqm' | 'acre' | '';
 } | null = null;
 let searchSessionVersion: number = 0; // Increment on each search to force updates
 
@@ -36,6 +39,9 @@ export const setSearchSession = (
     ward?: string;
     minPrice?: number;
     maxPrice?: number;
+    minArea?: number;
+    maxArea?: number;
+    areaUnit?: 'sqm' | 'acre' | '';
   } | null
 ) => {
   searchSessionId = sessionId;
