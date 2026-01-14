@@ -390,30 +390,13 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
     }
   }, [property.id, userId, user?.role, user?.isApproved]);
 
-  // Check if property has private notes (for regular users and admins)
+  // Check if property has private notes (for regular users only)
   useEffect(() => {
-    if (typeof window !== 'undefined' && userId && hideBookmark && user && user.role !== 'staff') {
+    if (typeof window !== 'undefined' && userId && hideBookmark && user && user.role !== 'staff' && user.role !== 'admin') {
       const checkPrivateNotes = () => {
-        // For admins, check all users' private notes for this property
-        if (user.role === 'admin') {
-          // Check if any user has notes for this property
-          let hasAnyNotes = false;
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('rentapp_notes_') && key.endsWith(`_${property.id}`) && !key.startsWith('rentapp_notes_staff_')) {
-              const notes = localStorage.getItem(key) || '';
-              if (notes.trim().length > 0) {
-                hasAnyNotes = true;
-                break;
-              }
-            }
-          }
-          setHasPrivateNotes(hasAnyNotes);
-        } else {
-          // For regular users, check their own notes
-          const notes = getPrivateNotes(property.id, userId);
-          setHasPrivateNotes(notes.trim().length > 0);
-        }
+        // For regular users, check their own notes
+        const notes = getPrivateNotes(property.id, userId);
+        setHasPrivateNotes(notes.trim().length > 0);
       };
       checkPrivateNotes();
 
@@ -832,13 +815,13 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
               );
             })()}
             {/* Image Counter - Mobile: Always visible with icon + count */}
-            <div className="flex xl:hidden absolute bottom-1 left-1 px-2 py-1.5 rounded-lg flex items-center space-x-0.5 text-white text-base font-medium" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+            <div className={`flex xl:hidden absolute bottom-1 left-1 px-2 ${hideBookmark ? 'py-1.5' : 'py-[5px]'} ${hideBookmark ? 'rounded-lg' : 'rounded-md'} flex items-center space-x-0.5 text-white ${hideBookmark ? 'text-base' : 'text-sm'} font-medium`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
               {/* eslint-disable-next-line jsx-a11y/alt-text */}
               <Image size={16} className="w-4 h-4" />
               <span>{property.images.length}</span>
             </div>
             {/* Image Counter - Desktop: With hover behavior */}
-            <div className="hidden xl:flex absolute bottom-2.5 left-1 lg:bottom-5 lg:left-1 text-white text-base font-medium px-3 py-1.5 xl:px-3.5 xl:py-1.5 rounded-lg shadow-lg items-center space-x-0.5 xl:space-x-1" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+            <div className={`hidden xl:flex absolute bottom-2.5 left-1 lg:bottom-5 lg:left-1 text-white ${hideBookmark ? 'text-base' : 'text-sm xl:text-base'} font-medium px-3 ${hideBookmark ? 'py-1.5 xl:py-1.5' : 'py-[5px] xl:py-[5px]'} xl:px-3.5 ${hideBookmark ? 'rounded-lg' : 'rounded-md'} shadow-lg items-center space-x-0.5 xl:space-x-1`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
               {!isArrowHovered && (
                 <>
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -1234,8 +1217,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                 </button>
               </div>
             )}
-            {/* Private Notes Button - For regular users and admins (not staff) on my-properties */}
-            {hideBookmark && user && userId && user.role !== 'staff' && (
+            {/* Private Notes Button - For regular users only (not staff or admin) on my-properties */}
+            {hideBookmark && user && userId && user.role !== 'staff' && user.role !== 'admin' && (
               <div className="mt-auto flex items-center" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={(e) => {
@@ -1243,16 +1226,13 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     e.preventDefault();
                     // Load private notes
                     if (typeof window !== 'undefined') {
-                      if (user.role === 'admin') {
-                        // For admin, don't load into textarea - modal will show all notes
-                        setPrivateNotes('');
-                      } else {
-                        const notes = getPrivateNotes(property.id, userId);
-                        setPrivateNotes(notes);
-                      }
+                      const notes = getPrivateNotes(property.id, userId);
+                      setPrivateNotes(notes);
                     }
                     setIsPrivateNotesEditable(false);
                     setShowPrivateNotesModal(true);
+                    // Track property view (blue dot tracker)
+                    markPropertyAsViewed();
                   }}
                   className="flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg text-base font-medium select-none relative"
                   style={{ 
@@ -1627,8 +1607,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
         </div>
       )}
 
-      {/* Private Notes Modal - For regular users and admins (not staff) */}
-      {showPrivateNotesModal && user && userId && user.role !== 'staff' && (
+      {/* Private Notes Modal - For regular users only (not staff or admin) */}
+      {showPrivateNotesModal && user && userId && user.role !== 'staff' && user.role !== 'admin' && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{
@@ -1648,7 +1628,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
           >
             <div className="flex justify-between items-center mb-3 relative pt-1">
               <h3 className="text-xl font-semibold text-black flex-1 text-center">
-                {user.role === 'admin' ? 'Private Notes (All Users)' : 'Private Notes'}
+                Private Notes
               </h3>
               <button
                 onClick={(e) => {
@@ -1663,39 +1643,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
               </button>
             </div>
             
-            {user.role === 'admin' ? (
-              // Admin view: Show all users' private notes (read-only)
-              <div className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 max-h-60 overflow-y-auto">
-                {(() => {
-                  const allNotes: Array<{ userId: string; notes: string }> = [];
-                  if (typeof window !== 'undefined') {
-                    for (let i = 0; i < localStorage.length; i++) {
-                      const key = localStorage.key(i);
-                      if (key && key.startsWith('rentapp_notes_') && key.endsWith(`_${property.id}`) && !key.startsWith('rentapp_notes_staff_')) {
-                        const match = key.match(/rentapp_notes_(.+?)_(.+)/);
-                        if (match) {
-                          const notes = localStorage.getItem(key) || '';
-                          if (notes.trim().length > 0) {
-                            allNotes.push({ userId: match[1], notes });
-                          }
-                        }
-                      }
-                    }
-                  }
-                  if (allNotes.length === 0) {
-                    return <p className="text-gray-500 text-sm">No private notes from any users.</p>;
-                  }
-                  return allNotes.map((item, index) => (
-                    <div key={index} className="mb-3 pb-3 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
-                      <p className="text-xs text-gray-500 mb-1">User ID: {item.userId}</p>
-                      <p className="text-sm whitespace-pre-wrap">{item.notes}</p>
-                    </div>
-                  ));
-                })()}
-              </div>
-            ) : (
-              // Regular user view: Editable notes
-              <textarea
+            {/* Regular user view: Editable notes */}
+            <textarea
                 ref={privateNotesTextareaRef}
                 className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isPrivateNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
                 placeholder={isPrivateNotesEditable ? "Add your private notes about this property..." : "Double-click to edit/add notes..."}
@@ -1706,6 +1655,10 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                 onDoubleClick={(e) => {
                   e.preventDefault();
                   setIsPrivateNotesEditable(true);
+                  // Track property edit (yellow dot indicator) when edit is triggered
+                  if (onManageStart) {
+                    onManageStart();
+                  }
                   requestAnimationFrame(() => {
                     setTimeout(() => {
                       if (privateNotesTextareaRef.current) {
@@ -1726,6 +1679,10 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     if (now - lastTap < 300) {
                       e.preventDefault();
                       setIsPrivateNotesEditable(true);
+                      // Track property edit (yellow dot indicator) when edit is triggered
+                      if (onManageStart) {
+                        onManageStart();
+                      }
                       requestAnimationFrame(() => {
                         setTimeout(() => {
                           target.removeAttribute('readonly');
@@ -1739,11 +1696,9 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   }
                 }}
               />
-            )}
 
             <div className="flex gap-2 mt-1.5">
-              {user.role !== 'admin' && (
-                <button
+              <button
                   onClick={() => {
                     if (typeof window !== 'undefined' && userId) {
                       savePrivateNotes(property.id, userId, privateNotes);
@@ -1769,18 +1724,17 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                 >
                   Save
                 </button>
-              )}
               <button
                 onClick={() => {
                   setIsPrivateNotesEditable(false);
                   setShowPrivateNotesModal(false);
                   // Reset to saved notes
-                  if (typeof window !== 'undefined' && userId && user.role !== 'admin') {
+                  if (typeof window !== 'undefined' && userId) {
                     const savedNotes = getPrivateNotes(property.id, userId);
                     setPrivateNotes(savedNotes);
                   }
                 }}
-                className={`px-4 py-2 rounded-lg font-medium text-white select-none ${user.role === 'admin' ? 'w-full' : 'flex-1'}`}
+                className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
                 style={{ 
                   backgroundColor: '#ef4444',
                   WebkitTapHighlightColor: 'transparent',
@@ -1791,7 +1745,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   outline: 'none'
                 }}
               >
-                {user.role === 'admin' ? 'Close' : 'Cancel'}
+                Cancel
               </button>
             </div>
           </div>
@@ -1823,22 +1777,18 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
             </div>
             <div className="mb-4 space-y-3">
               <p className="text-gray-700 text-base leading-relaxed">
-                {user?.role === 'admin' 
-                  ? 'These private notes are only visible to the uploader of each property. As an admin, you can view all users\' private notes, but they cannot see each other\'s notes.'
-                  : 'These notes are completely private and only visible to you. No one else can see them.'}
+                These notes are completely private and only visible to you. No one else can see them.
               </p>
-              {user?.role !== 'admin' && (
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                  <p className="text-gray-700 text-sm leading-relaxed font-medium mb-1">Why private notes are important:</p>
-                  <ul className="text-gray-700 text-sm leading-relaxed space-y-1 ml-4 list-disc">
-                    <li>Track inquiries and interactions with potential tenants</li>
-                    <li>Remember important details about your property</li>
-                    <li>Keep notes on maintenance schedules and reminders</li>
-                    <li>Document property history and updates</li>
-                    <li>Manage multiple properties more effectively</li>
-                  </ul>
-                </div>
-              )}
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                <p className="text-gray-700 text-sm leading-relaxed font-medium mb-1">Why private notes are important:</p>
+                <ul className="text-gray-700 text-sm leading-relaxed space-y-1 ml-4 list-disc">
+                  <li>Track inquiries and interactions with potential tenants</li>
+                  <li>Remember important details about your property</li>
+                  <li>Keep notes on maintenance schedules and reminders</li>
+                  <li>Document property history and updates</li>
+                  <li>Manage multiple properties more effectively</li>
+                </ul>
+              </div>
             </div>
             <button
               onClick={() => setShowPrivateNotesInfo(false)}

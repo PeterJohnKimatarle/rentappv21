@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
@@ -22,7 +22,7 @@ export default function ImageLightbox({
   onViewDetails,
   rounded = false
 }: ImageLightboxProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const preloadedImagesRef = useRef<Set<number>>(new Set());
@@ -71,20 +71,86 @@ export default function ImageLightbox({
     img.src = images[index];
   }, [images]);
 
-  // Preload current and adjacent images
+  // Preload all images when lightbox opens
   useEffect(() => {
-    // Reset loading and error states when image changes
-    setIsLoading(true);
+    // Preload all images immediately for better UX
+    images.forEach((_, index) => {
+      preloadImage(index);
+    });
+  }, [images, preloadImage]);
+
+  // Handle image changes - optimize loading state
+  useEffect(() => {
     setImageError(false);
     
-    // Preload current image
-    preloadImage(currentIndex);
+    // Check if current image is already preloaded
+    if (preloadedImagesRef.current.has(currentIndex)) {
+      setIsLoading(false);
+    } else {
+      // Preload the image and check cache
+      const img = new window.Image();
+      let imageLoaded = false;
+      
+      img.onload = () => {
+        imageLoaded = true;
+        setIsLoading(false);
+        if (!preloadedImagesRef.current.has(currentIndex)) {
+          preloadedImagesRef.current.add(currentIndex);
+          setPreloadedImages(new Set(preloadedImagesRef.current));
+        }
+      };
+      
+      img.onerror = () => {
+        setIsLoading(false);
+        setImageError(true);
+      };
+      
+      img.src = images[currentIndex];
+      
+      // Check if image is already cached (complete immediately)
+      // Use a small timeout to allow cached images to load instantly
+      const timeoutId = setTimeout(() => {
+        if (!imageLoaded && img.complete && img.naturalWidth > 0) {
+          setIsLoading(false);
+          if (!preloadedImagesRef.current.has(currentIndex)) {
+            preloadedImagesRef.current.add(currentIndex);
+            setPreloadedImages(new Set(preloadedImagesRef.current));
+          }
+        } else if (!imageLoaded) {
+          // Only show loading if image hasn't loaded after a brief moment
+          setIsLoading(true);
+        }
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
+    }
     
-    // Preload next image
+    // Preload adjacent images for smooth navigation
     const nextIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
     preloadImage(nextIndex);
     
-    // Preload previous image
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+    preloadImage(prevIndex);
+  }, [currentIndex, images.length, preloadImage, images]);
+
+  // Handle image changes - check if already preloaded
+  useEffect(() => {
+    // Check if current image is already preloaded
+    if (preloadedImagesRef.current.has(currentIndex)) {
+      setIsLoading(false);
+      setImageError(false);
+    } else {
+      // Only show loading if image is not preloaded
+      setIsLoading(true);
+      setImageError(false);
+      // Preload current image
+      preloadImage(currentIndex);
+    }
+    
+    // Preload adjacent images for smooth navigation
+    const nextIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+    preloadImage(nextIndex);
+    
     const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
     preloadImage(prevIndex);
   }, [currentIndex, images.length, preloadImage]);
@@ -113,6 +179,11 @@ export default function ImageLightbox({
   const handleImageLoad = () => {
     setIsLoading(false);
     setImageError(false);
+    // Mark as preloaded
+    if (!preloadedImagesRef.current.has(currentIndex)) {
+      preloadedImagesRef.current.add(currentIndex);
+      setPreloadedImages(new Set(preloadedImagesRef.current));
+    }
   };
 
   const handleImageError = () => {
@@ -185,25 +256,23 @@ export default function ImageLightbox({
       const absDistanceX = Math.abs(distanceX);
       const absDistanceY = Math.abs(distanceY);
       
-      if (rounded) {
-        // For profile images: swipe in any direction to dismiss
-        if (absDistanceX > minSwipeDistance || absDistanceY > minSwipeDistance) {
+      // For both profile and property images: swipe down to close
+      if (absDistanceY > absDistanceX) {
+        // Vertical swipe - swipe down to close
+        const isDownSwipe = distanceY > minSwipeDistance;
+        if (isDownSwipe) {
           onClose();
         }
-      } else {
-        // For property images: horizontal swipe for navigation only
-        if (absDistanceX > absDistanceY) {
-          // Horizontal swipe for navigation
-          const isLeftSwipe = distanceX > minSwipeDistance;
-          const isRightSwipe = distanceX < -minSwipeDistance;
+      } else if (absDistanceX > absDistanceY && !rounded) {
+        // Horizontal swipe for navigation (only for property images, not profile images)
+        const isLeftSwipe = distanceX > minSwipeDistance;
+        const isRightSwipe = distanceX < -minSwipeDistance;
 
-          if (isLeftSwipe) {
-            goToNext();
-          } else if (isRightSwipe) {
-            goToPrevious();
-          }
+        if (isLeftSwipe) {
+          goToNext();
+        } else if (isRightSwipe) {
+          goToPrevious();
         }
-        // Vertical swipes do nothing for property images - use X button to close
       }
     }
     setTouchStart(null);
@@ -295,21 +364,6 @@ export default function ImageLightbox({
         onMouseLeave={handleMouseUp}
         onClick={handleImageClick}
       >
-        {/* Close Button - Only show for property images (not profile images) */}
-        {!rounded && (
-          <button
-            onClick={onClose}
-            className="absolute top-2 right-2 text-white transition-colors z-20 rounded-lg p-2 cursor-pointer"
-            style={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.5)'
-            }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(239, 68, 68, 1)'}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
-          >
-            <X size={24} />
-          </button>
-        )}
-        
         {/* Reset Zoom Button - Absolute position relative to container, only show when zoomed */}
         {scale > 1 && (
           <button
@@ -333,10 +387,10 @@ export default function ImageLightbox({
 
 
                {isLoading && !isCurrentImagePreloaded && (
-                 <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                    <div className="flex flex-col items-center">
-                     <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4"></div>
-                     <div className="text-white text-lg font-medium">Loading image...</div>
+                     <div className="w-8 h-8 border-2 border-white/40 border-t-white rounded-full animate-spin mb-2"></div>
+                     <div className="text-white text-sm font-medium">Loading...</div>
                    </div>
                  </div>
                )}
@@ -384,8 +438,10 @@ export default function ImageLightbox({
                    onError={handleImageError}
                    draggable={false}
                    style={{ 
-                     opacity: isCurrentImagePreloaded ? 1 : 0.7,
-                     transition: scale === 1 ? 'opacity 0.3s ease-in-out, transform 0.2s ease-out' : 'opacity 0.3s ease-in-out',
+                     opacity: isCurrentImagePreloaded ? 1 : (isLoading ? 0.3 : 1),
+                     transition: isCurrentImagePreloaded 
+                       ? (scale === 1 ? 'transform 0.2s ease-out' : 'transform 0.2s ease-out')
+                       : (scale === 1 ? 'opacity 0.15s ease-in-out, transform 0.2s ease-out' : 'opacity 0.15s ease-in-out'),
                      transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
                      transformOrigin: 'center center'
                    }}

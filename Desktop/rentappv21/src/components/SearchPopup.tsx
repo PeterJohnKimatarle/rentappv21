@@ -833,7 +833,9 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
                       value={areaUnitValue}
                       onChange={(e) => {
                         const value = e.target.value;
-                        setAreaUnitValue(value);
+                        // If empty value is selected, default back to 'area-sqm'
+                        const finalValue = value || 'area-sqm';
+                        setAreaUnitValue(finalValue);
                       }}
                       className="absolute inset-0 w-fit h-full opacity-0 cursor-pointer"
                     >

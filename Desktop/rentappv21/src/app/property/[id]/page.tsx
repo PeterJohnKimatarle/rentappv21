@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon } from 'lucide-react';
-import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getStaffNotes, saveStaffNotes, getUserNotes, saveUserNotes } from '@/utils/propertyUtils';
+import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon, Info } from 'lucide-react';
+import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getStaffNotes, saveStaffNotes, getUserNotes, saveUserNotes, getPrivateNotes, savePrivateNotes } from '@/utils/propertyUtils';
 import { parsePropertyType, getPropertyTypeDisplayLabel } from '@/utils/propertyTypes';
 import ImageLightbox from '@/components/ImageLightbox';
 import SharePopup from '@/components/SharePopup';
@@ -58,9 +58,16 @@ export default function PropertyDetailsPage() {
   const [hasUserNotes, setHasUserNotes] = useState(false);
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
   const [showUploaderImagePreview, setShowUploaderImagePreview] = useState(false);
+  const [privateNotes, setPrivateNotes] = useState('');
+  const [hasPrivateNotes, setHasPrivateNotes] = useState(false);
+  const [isPrivateNotesEditable, setIsPrivateNotesEditable] = useState(false);
+  const [showPrivateNotesModal, setShowPrivateNotesModal] = useState(false);
+  const [privateNotesKeyboardInset, setPrivateNotesKeyboardInset] = useState(0);
+  const privateNotesTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showPrivateNotesInfo, setShowPrivateNotesInfo] = useState(false);
 
   // Prevent body scrolling when booking modal is open
-  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal || isLoginPopupOpen || showUploaderImagePreview);
+  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal || isLoginPopupOpen || showUploaderImagePreview || showPrivateNotesModal);
 
   useEffect(() => {
     const propertyId = params.id as string;
@@ -219,6 +226,25 @@ export default function PropertyDetailsPage() {
     };
   }, [property, userId]);
 
+  // Check if property has private notes (for regular users viewing their own property)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userId && property && 'ownerId' in property && property.ownerId === userId && user && user.role !== 'staff' && user.role !== 'admin') {
+      const checkPrivateNotes = () => {
+        const notes = getPrivateNotes(property.id, userId);
+        setHasPrivateNotes(notes.trim().length > 0);
+      };
+      checkPrivateNotes();
+      window.addEventListener('storage', checkPrivateNotes);
+      window.addEventListener('privateNotesChanged', checkPrivateNotes);
+      return () => {
+        window.removeEventListener('storage', checkPrivateNotes);
+        window.removeEventListener('privateNotesChanged', checkPrivateNotes);
+      };
+    } else {
+      setHasPrivateNotes(false);
+    }
+  }, [property?.id, userId, user?.role]);
+
   // Check if property is in follow-up
   useEffect(() => {
     if (typeof window !== 'undefined' && property) {
@@ -347,6 +373,30 @@ export default function PropertyDetailsPage() {
       vv.removeEventListener('scroll', handleResize);
     };
   }, [showUserNotesModal]);
+
+  // Detect keyboard visibility for private notes modal
+  useEffect(() => {
+    if (!showPrivateNotesModal) {
+      setPrivateNotesKeyboardInset(0);
+      return;
+    }
+    const vv = typeof window !== 'undefined'
+      ? (window as Window & { visualViewport?: VisualViewport }).visualViewport
+      : undefined;
+    if (!vv) return;
+    const handleResize = () => {
+      const covered = Math.max(0, window.innerHeight - vv.height);
+      // Move modal up by 100px when keyboard is visible, return to center when not visible
+      setPrivateNotesKeyboardInset(covered > 0 ? 100 : 0);
+    };
+    handleResize();
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, [showPrivateNotesModal]);
 
   // Check if uploader user has notes
   useEffect(() => {
@@ -722,35 +772,28 @@ export default function PropertyDetailsPage() {
               </div>
             )}
 
-            {/* Confirm & Book / Confirm Status Button - Desktop Only */}
+            {/* Confirm & Book / Confirm Status Button and Private Notes Button - Desktop Only */}
               <div className="hidden xl:block absolute bottom-2 right-2 z-30">
-              {((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') ? (
-                  <>
+              {(() => {
+                const isOwnProperty = user && userId && property && 'ownerId' in property && property.ownerId === userId && user.role !== 'staff' && user.role !== 'admin';
+                
+                // For regular users viewing their own property, show only Private Notes button
+                if (isOwnProperty) {
+                  return (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        markPropertyAsViewed(); // Track property view
-                        // Open property actions modal for all states
-                        if (isPinged) {
-                          // When followed, open property actions modal instead of notes directly
-                          setShowThreeDotsModal(true);
-                        } else if (isClosed) {
-                          // Staff and admin can open property actions modal
-                          markPropertyAsViewed(); // Track property view
-                          setShowThreeDotsModal(true);
-                        } else {
-                          // Staff and admin can open property actions modal
-                          markPropertyAsViewed(); // Track property view
-                          setShowThreeDotsModal(true);
+                        if (typeof window !== 'undefined' && userId) {
+                          const notes = getPrivateNotes(property.id, userId);
+                          setPrivateNotes(notes);
                         }
+                        setIsPrivateNotesEditable(false);
+                        setShowPrivateNotesModal(true);
+                        markPropertyAsViewed();
                       }}
                       className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none relative"
                       style={{ 
-                        backgroundColor: isClosed
-                          ? 'rgba(34, 197, 94, 0.9)' 
-                          : isPinged
-                            ? 'rgba(59, 130, 246, 0.9)' 
-                            : 'rgba(107, 114, 128, 0.9)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.9)',
                         WebkitTapHighlightColor: 'transparent',
                         WebkitUserSelect: 'none',
                         MozUserSelect: 'none',
@@ -759,75 +802,119 @@ export default function PropertyDetailsPage() {
                         outline: 'none'
                       }}
                     >
-                      {hasNotes && (
+                      {hasPrivateNotes && (
                         <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                       )}
-                      {isClosed ? (
-                        <>
-                          <span className="text-sm xl:text-base font-medium">Closed</span>
-                        </>
-                      ) : isPinged ? (
-                        <>
-                          <span className="text-sm xl:text-base font-medium">Followed</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-sm xl:text-base font-medium">Default</span>
-                        </>
-                      )}
+                      <FileText size={18} />
+                      <span className="text-sm xl:text-base font-medium">Private Notes</span>
                     </button>
+                  );
+                }
+                
+                // Default layout for staff/admin or other users
+                return (
+                  <>
+                    {((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') ? (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markPropertyAsViewed();
+                            if (isPinged) {
+                              setShowThreeDotsModal(true);
+                            } else if (isClosed) {
+                              markPropertyAsViewed();
+                              setShowThreeDotsModal(true);
+                            } else {
+                              markPropertyAsViewed();
+                              setShowThreeDotsModal(true);
+                            }
+                          }}
+                          className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none relative"
+                          style={{ 
+                            backgroundColor: isClosed
+                              ? 'rgba(34, 197, 94, 0.9)' 
+                              : isPinged
+                                ? 'rgba(59, 130, 246, 0.9)' 
+                                : 'rgba(107, 114, 128, 0.9)',
+                            WebkitTapHighlightColor: 'transparent',
+                            WebkitUserSelect: 'none',
+                            MozUserSelect: 'none',
+                            msUserSelect: 'none',
+                            userSelect: 'none',
+                            outline: 'none'
+                          }}
+                        >
+                          {hasNotes && (
+                            <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                          )}
+                          {isClosed ? (
+                            <>
+                              <span className="text-sm xl:text-base font-medium">Closed</span>
+                            </>
+                          ) : isPinged ? (
+                            <>
+                              <span className="text-sm xl:text-base font-medium">Followed</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-sm xl:text-base font-medium">Default</span>
+                            </>
+                          )}
+                        </button>
+                      </>
+                    ) : property.status === 'available' ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isAuthenticated) {
+                            alert('Please login to book this property.');
+                            return;
+                          }
+                          setBookingModalType('book');
+                          setShowBookingModal(true);
+                        }}
+                        className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none"
+                        style={{ 
+                          backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                          WebkitTapHighlightColor: 'transparent',
+                          WebkitUserSelect: 'none',
+                          MozUserSelect: 'none',
+                          msUserSelect: 'none',
+                          userSelect: 'none',
+                          outline: 'none'
+                        }}
+                      >
+                        <span className="text-sm xl:text-base font-medium">Confirm & Book</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isAuthenticated) {
+                            alert('Please login to confirm status of this property.');
+                            return;
+                          }
+                          setBookingModalType('status');
+                          setShowBookingModal(true);
+                        }}
+                        className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none"
+                        style={{ 
+                          backgroundColor: '#f87171',
+                          WebkitTapHighlightColor: 'transparent',
+                          WebkitUserSelect: 'none',
+                          MozUserSelect: 'none',
+                          msUserSelect: 'none',
+                          userSelect: 'none',
+                          outline: 'none'
+                        }}
+                      >
+                        <span className="text-sm xl:text-base font-medium">Confirm Status</span>
+                      </button>
+                    )}
                   </>
-                ) : property.status === 'available' ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Only allow logged-in users to book
-                      if (!isAuthenticated) {
-                        alert('Please login to book this property.');
-                        return;
-                      }
-                      setBookingModalType('book');
-                      setShowBookingModal(true);
-                    }}
-                    className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none"
-                    style={{ 
-                      backgroundColor: 'rgba(34, 197, 94, 0.9)',
-                      WebkitTapHighlightColor: 'transparent',
-                      WebkitUserSelect: 'none',
-                      MozUserSelect: 'none',
-                      msUserSelect: 'none',
-                      userSelect: 'none',
-                      outline: 'none'
-                    }}
-                  >
-                    <span className="text-sm xl:text-base font-medium">Confirm & Book</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Only allow logged-in users to confirm status
-                      if (!isAuthenticated) {
-                        alert('Please login to confirm status of this property.');
-                        return;
-                      }
-                      setBookingModalType('status');
-                      setShowBookingModal(true);
-                    }}
-                    className="text-white rounded-lg px-4 py-2 xl:px-6 xl:py-3 cursor-pointer flex items-center justify-center gap-2 shadow-lg select-none"
-                    style={{ 
-                      backgroundColor: '#f87171',
-                      WebkitTapHighlightColor: 'transparent',
-                      WebkitUserSelect: 'none',
-                      MozUserSelect: 'none',
-                      msUserSelect: 'none',
-                      userSelect: 'none',
-                      outline: 'none'
-                    }}
-                  >
-                    <span className="text-sm xl:text-base font-medium">Confirm Status</span>
-                  </button>
-                )}
+                );
+              })()}
               </div>
             </div>
           </div>
@@ -990,35 +1077,28 @@ export default function PropertyDetailsPage() {
               </div>
             </div>
 
-      {/* Fixed Confirm & Book / Confirm Status Button - Mobile Only - Visible for all users */}
+      {/* Fixed Confirm & Book / Confirm Status Button and Private Notes Button - Mobile Only - Visible for all users */}
         <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg px-4 py-3">
         <div className="max-w-7xl mx-auto flex justify-center gap-2">
-          {((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') ? (
-              <>
+          {(() => {
+            const isOwnProperty = user && userId && property && 'ownerId' in property && property.ownerId === userId && user.role !== 'staff' && user.role !== 'admin';
+            
+            // For regular users viewing their own property, show only Private Notes button
+            if (isOwnProperty) {
+              return (
                 <button
                   onClick={() => {
-                    markPropertyAsViewed(); // Track property view
-                    // Open property actions modal for all states
-                    if (isPinged) {
-                      // When followed, open property actions modal instead of notes directly
-                      setShowThreeDotsModal(true);
-                    } else if (isClosed) {
-                      // Staff and admin can open property actions modal
-                      markPropertyAsViewed(); // Track property view
-                      setShowThreeDotsModal(true);
-                    } else {
-                      // Staff and admin can open property actions modal
-                      markPropertyAsViewed(); // Track property view
-                      setShowThreeDotsModal(true);
+                    if (typeof window !== 'undefined' && userId) {
+                      const notes = getPrivateNotes(property.id, userId);
+                      setPrivateNotes(notes);
                     }
+                    setIsPrivateNotesEditable(false);
+                    setShowPrivateNotesModal(true);
+                    markPropertyAsViewed();
                   }}
-                  className="flex-1 max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none relative"
+                  className="w-full max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none relative"
                   style={{ 
-                    backgroundColor: isClosed
-                      ? 'rgba(34, 197, 94, 0.9)' 
-                      : isPinged
-                        ? 'rgba(59, 130, 246, 0.9)' 
-                        : 'rgba(107, 114, 128, 0.9)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.9)',
                     WebkitTapHighlightColor: 'transparent',
                     WebkitUserSelect: 'none',
                     MozUserSelect: 'none',
@@ -1027,73 +1107,116 @@ export default function PropertyDetailsPage() {
                     outline: 'none'
                   }}
                 >
-                  {hasNotes && (
+                  {hasPrivateNotes && (
                     <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                   )}
-                  {isClosed ? (
-                    <>
-                      <span className="text-base xl:text-lg font-medium">Closed</span>
-                    </>
-                  ) : isPinged ? (
-                    <>
-                      <span className="text-base xl:text-lg font-medium">Followed</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-base xl:text-lg font-medium">Default</span>
-                    </>
-                  )}
+                  <FileText size={18} />
+                  <span className="text-base xl:text-lg font-medium">Private Notes</span>
                 </button>
+              );
+            }
+            
+            // Default layout for staff/admin or other users
+            return (
+              <>
+                {((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        markPropertyAsViewed();
+                        if (isPinged) {
+                          setShowThreeDotsModal(true);
+                        } else if (isClosed) {
+                          markPropertyAsViewed();
+                          setShowThreeDotsModal(true);
+                        } else {
+                          markPropertyAsViewed();
+                          setShowThreeDotsModal(true);
+                        }
+                      }}
+                      className="flex-1 max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none relative"
+                      style={{ 
+                        backgroundColor: isClosed
+                          ? 'rgba(34, 197, 94, 0.9)' 
+                          : isPinged
+                            ? 'rgba(59, 130, 246, 0.9)' 
+                            : 'rgba(107, 114, 128, 0.9)',
+                        WebkitTapHighlightColor: 'transparent',
+                        WebkitUserSelect: 'none',
+                        MozUserSelect: 'none',
+                        msUserSelect: 'none',
+                        userSelect: 'none',
+                        outline: 'none'
+                      }}
+                    >
+                      {hasNotes && (
+                        <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                      )}
+                      {isClosed ? (
+                        <>
+                          <span className="text-base xl:text-lg font-medium">Closed</span>
+                        </>
+                      ) : isPinged ? (
+                        <>
+                          <span className="text-base xl:text-lg font-medium">Followed</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-base xl:text-lg font-medium">Default</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : property.status === 'available' ? (
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        alert('Please login to book this property.');
+                        return;
+                      }
+                      setBookingModalType('book');
+                      setShowBookingModal(true);
+                    }}
+                    className="w-full max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none"
+                    style={{ 
+                      backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                      WebkitTapHighlightColor: 'transparent',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none',
+                      userSelect: 'none',
+                      outline: 'none'
+                    }}
+                  >
+                    <span className="text-base xl:text-lg font-medium">Confirm & Book</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        alert('Please login to confirm status of this property.');
+                        return;
+                      }
+                      setBookingModalType('status');
+                      setShowBookingModal(true);
+                    }}
+                    className="w-full max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none"
+                    style={{ 
+                      backgroundColor: '#f87171',
+                      WebkitTapHighlightColor: 'transparent',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none',
+                      userSelect: 'none',
+                      outline: 'none'
+                    }}
+                  >
+                    <span className="text-base xl:text-lg font-medium">Confirm Status</span>
+                  </button>
+                )}
               </>
-            ) : property.status === 'available' ? (
-              <button
-                onClick={() => {
-                  // Only allow logged-in users to book
-                  if (!isAuthenticated) {
-                    alert('Please login to book this property.');
-                    return;
-                  }
-                  setBookingModalType('book');
-                  setShowBookingModal(true);
-                }}
-                className="w-full max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none"
-                style={{ 
-                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                <span className="text-base xl:text-lg font-medium">Confirm & Book</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  // Only allow logged-in users to confirm status
-                  if (!isAuthenticated) {
-                    alert('Please login to confirm status of this property.');
-                    return;
-                  }
-                  setBookingModalType('status');
-                  setShowBookingModal(true);
-                }}
-                className="w-full max-w-md text-white rounded-lg px-4 py-3 xl:px-6 xl:py-3.5 cursor-pointer flex items-center justify-center gap-2 select-none"
-                style={{ 
-                  backgroundColor: '#f87171',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                <span className="text-base xl:text-lg font-medium">Confirm Status</span>
-              </button>
-            )}
+            );
+          })()}
           </div>
         </div>
 
@@ -2380,6 +2503,187 @@ export default function PropertyDetailsPage() {
           onImageChange={() => {}}
           rounded={true}
         />
+      )}
+
+      {/* Private Notes Modal - For regular users viewing their own property */}
+      {showPrivateNotesModal && user && userId && property && 'ownerId' in property && property.ownerId === userId && user.role !== 'staff' && user.role !== 'admin' && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            touchAction: 'none',
+            minHeight: '100vh',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          <div
+            className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: privateNotesKeyboardInset > 0 ? `translateY(-${privateNotesKeyboardInset}px)` : 'translateY(0)',
+              transition: 'transform 0.2s ease-out'
+            }}
+          >
+            <div className="flex justify-between items-center mb-3 relative pt-1">
+              <h3 className="text-xl font-semibold text-black flex-1 text-center">
+                Private Notes
+              </h3>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPrivateNotesInfo(true);
+                }}
+                className="absolute right-0 p-2 text-blue-500 hover:bg-gray-300 rounded transition-all cursor-pointer"
+                title="Privacy information"
+                style={{ top: '50%', transform: 'translateY(-50%)' }}
+              >
+                <Info size={22} />
+              </button>
+            </div>
+            
+            {/* Regular user view: Editable notes */}
+            <textarea
+              ref={privateNotesTextareaRef}
+              className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isPrivateNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
+              placeholder={isPrivateNotesEditable ? "Add your private notes about this property..." : "Double-click to edit/add notes..."}
+              rows={6}
+              value={privateNotes}
+              onChange={(e) => setPrivateNotes(e.target.value)}
+              readOnly={!isPrivateNotesEditable}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                setIsPrivateNotesEditable(true);
+                requestAnimationFrame(() => {
+                  setTimeout(() => {
+                    if (privateNotesTextareaRef.current) {
+                      privateNotesTextareaRef.current.removeAttribute('readonly');
+                      privateNotesTextareaRef.current.focus();
+                      const length = privateNotesTextareaRef.current.value.length;
+                      privateNotesTextareaRef.current.setSelectionRange(length, length);
+                    }
+                  }, 0);
+                });
+              }}
+              onTouchStart={(e) => {
+                if (!isPrivateNotesEditable) {
+                  const target = e.currentTarget;
+                  const now = Date.now();
+                  const lastTap = (target as any).lastTap || 0;
+                  
+                  if (now - lastTap < 300) {
+                    e.preventDefault();
+                    setIsPrivateNotesEditable(true);
+                    requestAnimationFrame(() => {
+                      setTimeout(() => {
+                        target.removeAttribute('readonly');
+                        target.focus();
+                        const length = target.value.length;
+                        target.setSelectionRange(length, length);
+                      }, 0);
+                    });
+                  }
+                  (target as any).lastTap = now;
+                }
+              }}
+            />
+
+            <div className="flex gap-2 mt-1.5">
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined' && userId && property) {
+                    savePrivateNotes(property.id, userId, privateNotes);
+                    setHasPrivateNotes(privateNotes.trim().length > 0);
+                  }
+                  setIsPrivateNotesEditable(false);
+                  setShowPrivateNotesModal(false);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
+                style={{ 
+                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setIsPrivateNotesEditable(false);
+                  setShowPrivateNotesModal(false);
+                  // Reset to saved notes
+                  if (typeof window !== 'undefined' && userId && property) {
+                    const savedNotes = getPrivateNotes(property.id, userId);
+                    setPrivateNotes(savedNotes);
+                  }
+                }}
+                className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
+                style={{ 
+                  backgroundColor: '#ef4444',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Private Notes Info Modal */}
+      {showPrivateNotesInfo && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            touchAction: 'none',
+            minHeight: '100vh',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPrivateNotesInfo(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-xl px-4 py-3 sm:px-6 sm:pt-2 sm:pb-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-center items-center mb-2">
+              <h3 className="text-xl font-semibold text-black m-0">Private Notes</h3>
+            </div>
+            <div className="mb-4 space-y-3">
+              <p className="text-gray-700 text-base leading-relaxed">
+                These notes are completely private and only visible to you. No one else can see them.
+              </p>
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                <p className="text-gray-700 text-sm leading-relaxed font-medium mb-1">Why private notes are important:</p>
+                <ul className="text-gray-700 text-sm leading-relaxed space-y-1 ml-4 list-disc">
+                  <li>Track inquiries and interactions with potential tenants</li>
+                  <li>Remember important details about your property</li>
+                  <li>Keep notes on maintenance schedules and reminders</li>
+                  <li>Document property history and updates</li>
+                  <li>Manage multiple properties more effectively</li>
+                </ul>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPrivateNotesInfo(false)}
+              className="w-full px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
+            >
+              Ok, I got it
+            </button>
+          </div>
+        </div>
       )}
     </Layout>
   );
