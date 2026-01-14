@@ -200,6 +200,9 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
   const [imageError, setImageError] = useState(false);
   const imageTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const minSwipeDistance = 30; // Minimum distance to consider it a swipe
+  const lightboxCloseTimeRef = useRef<number>(0);
+  const [isLightboxClosing, setIsLightboxClosing] = useState(false);
+  const editButtonTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [isShareSpinning, setIsShareSpinning] = useState(false);
   const [lastViewedId, setLastViewedId] = useState<string | null>(null);
   const [showBookmarkPopup, setShowBookmarkPopup] = useState(false);
@@ -895,7 +898,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   setPendingImages(false);
                   setPendingDetails(false);
                 }}
-                className="flex xl:hidden absolute bottom-1 right-1 px-2 py-1.5 rounded-lg flex items-center space-x-0.5 text-white text-base font-medium z-20"
+                className="flex xl:hidden absolute bottom-1 right-1 px-2 py-1.5 rounded-lg flex items-center space-x-0.5 text-white text-base font-medium z-30"
                 style={{ 
                   backgroundColor: 'rgba(0, 0, 0, 0.5)',
                   WebkitUserSelect: 'none',
@@ -904,15 +907,62 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   userSelect: 'none',
                   WebkitTapHighlightColor: 'transparent',
                   outline: 'none',
-                  touchAction: 'manipulation'
+                  touchAction: 'manipulation',
+                  pointerEvents: 'auto'
                 }}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                 }}
                 onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                  // Track touch start position but don't prevent propagation yet
+                  const touch = e.touches[0];
+                  editButtonTouchStartRef.current = {
+                    x: touch.clientX,
+                    y: touch.clientY,
+                  };
+                }}
+                onTouchEnd={(e) => {
+                  // Check if it was a tap or swipe
+                  if (!editButtonTouchStartRef.current) {
+                    return;
+                  }
+                  
+                  const touch = e.changedTouches[0];
+                  const touchEnd = {
+                    x: touch.clientX,
+                    y: touch.clientY,
+                  };
+                  
+                  const distanceX = Math.abs(editButtonTouchStartRef.current.x - touchEnd.x);
+                  const distanceY = Math.abs(editButtonTouchStartRef.current.y - touchEnd.y);
+                  const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+                  
+                  // Check if it's a horizontal swipe (for search modal)
+                  const isHorizontalSwipe = distanceX > distanceY && distanceX > minSwipeDistance;
+                  
+                  if (isHorizontalSwipe) {
+                    // Allow swipe to propagate to parent for search modal
+                    editButtonTouchStartRef.current = null;
+                    return;
+                  }
+                  
+                  // Only trigger if it was a tap (minimal movement), not a swipe
+                  if (distance < minSwipeDistance) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Trigger the action immediately
+                    if (onManageStart) {
+                      onManageStart();
+                    }
+                    setShowActionPopup(true);
+                    setPendingStatus(property.status);
+                    setPendingImages(false);
+                    setPendingDetails(false);
+                  }
+                  
+                  // Reset touch start
+                  editButtonTouchStartRef.current = null;
                 }}
                 title="Edit property"
               >
@@ -934,7 +984,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   setPendingImages(false);
                   setPendingDetails(false);
                 }}
-                className="hidden xl:flex absolute bottom-2.5 right-1 lg:bottom-5 lg:right-1 text-white text-base font-medium px-3 py-1.5 xl:px-3.5 xl:py-1.5 rounded-lg shadow-lg items-center space-x-0.5 xl:space-x-1 z-20"
+                className="hidden xl:flex absolute bottom-2.5 right-1 lg:bottom-5 lg:right-1 text-white text-base font-medium px-3 py-1.5 xl:px-3.5 xl:py-1.5 rounded-lg shadow-lg items-center space-x-0.5 xl:space-x-1 z-30"
                 style={{ 
                   backgroundColor: 'rgba(0, 0, 0, 0.5)',
                   WebkitUserSelect: 'none',
@@ -943,15 +993,62 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   userSelect: 'none',
                   WebkitTapHighlightColor: 'transparent',
                   outline: 'none',
-                  touchAction: 'manipulation'
+                  touchAction: 'manipulation',
+                  pointerEvents: 'auto'
                 }}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                 }}
                 onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                  // Track touch start position but don't prevent propagation yet
+                  const touch = e.touches[0];
+                  editButtonTouchStartRef.current = {
+                    x: touch.clientX,
+                    y: touch.clientY,
+                  };
+                }}
+                onTouchEnd={(e) => {
+                  // Check if it was a tap or swipe
+                  if (!editButtonTouchStartRef.current) {
+                    return;
+                  }
+                  
+                  const touch = e.changedTouches[0];
+                  const touchEnd = {
+                    x: touch.clientX,
+                    y: touch.clientY,
+                  };
+                  
+                  const distanceX = Math.abs(editButtonTouchStartRef.current.x - touchEnd.x);
+                  const distanceY = Math.abs(editButtonTouchStartRef.current.y - touchEnd.y);
+                  const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+                  
+                  // Check if it's a horizontal swipe (for search modal)
+                  const isHorizontalSwipe = distanceX > distanceY && distanceX > minSwipeDistance;
+                  
+                  if (isHorizontalSwipe) {
+                    // Allow swipe to propagate to parent for search modal
+                    editButtonTouchStartRef.current = null;
+                    return;
+                  }
+                  
+                  // Only trigger if it was a tap (minimal movement), not a swipe
+                  if (distance < minSwipeDistance) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Trigger the action immediately
+                    if (onManageStart) {
+                      onManageStart();
+                    }
+                    setShowActionPopup(true);
+                    setPendingStatus(property.status);
+                    setPendingImages(false);
+                    setPendingDetails(false);
+                  }
+                  
+                  // Reset touch start
+                  editButtonTouchStartRef.current = null;
                 }}
                 title="Edit property"
               >
@@ -1336,10 +1433,23 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
         <ImageLightbox
           images={property.images}
           currentIndex={currentImageIndex}
-          onClose={() => setIsLightboxOpen(false)}
+          onClose={() => {
+            lightboxCloseTimeRef.current = Date.now();
+            setIsLightboxClosing(true);
+            setIsLightboxOpen(false);
+            // Clear the closing flag after a brief delay to allow interactions
+            setTimeout(() => {
+              setIsLightboxClosing(false);
+            }, 300);
+          }}
           onImageChange={setCurrentImageIndex}
           onViewDetails={() => {
+            lightboxCloseTimeRef.current = Date.now();
+            setIsLightboxClosing(true);
             setIsLightboxOpen(false);
+            setTimeout(() => {
+              setIsLightboxClosing(false);
+            }, 300);
             const queryString = searchParams.toString();
             router.push(`/property/${property.id}${queryString ? `?${queryString}` : ''}`);
           }}
