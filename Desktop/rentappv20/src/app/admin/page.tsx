@@ -139,8 +139,7 @@ function DeleteConfirmPopup({
 export default function AdminPage() {
   const { isAuthenticated, user, getAllStaff, getAllUsers, approveStaff, disapproveStaff, deleteUser, loginAs, isLoading, isImpersonating } = useAuth();
   const router = useRouter();
-  // Initialize to false - only track if user was authenticated AFTER initial load completes
-  const wasAuthenticatedRef = useRef(false);
+  // Track if initial auth rehydration has completed
   const hasInitializedRef = useRef(false);
   const isAdmin = user?.role === 'admin';
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
@@ -263,27 +262,35 @@ export default function AdminPage() {
     }
   }, [isAdmin]);
 
+  // Admin auth rehydration - runs ONCE on page load
+  // Note: This app uses localStorage, not cookies/backend API
+  // The useAuth hook handles rehydration, we just ensure it completes
   useEffect(() => {
-    // Only start tracking authentication state AFTER initial load completes
-    // This prevents false logout detection during SSR/hydration
+    // Mark as initialized once loading completes
     if (!hasInitializedRef.current && !isLoading) {
       hasInitializedRef.current = true;
-      wasAuthenticatedRef.current = isAuthenticated;
+    }
+  }, [isLoading]);
+
+  // Handle redirect ONLY after loading completes and user is not authenticated
+  // NEVER redirect while loading is true
+  useEffect(() => {
+    // Do NOT run redirect logic while loading
+    if (isLoading) {
       return;
     }
     
-    // Only detect logout transition if we've already initialized and user was authenticated
-    if (hasInitializedRef.current && wasAuthenticatedRef.current && !isAuthenticated && !isLoading) {
-      setIsLoggingOut(true);
-      // Redirect to homepage after brief delay
-      setTimeout(() => {
-        router.push('/');
+    // Only redirect if loading is false AND user is not authenticated AND we've initialized
+    if (hasInitializedRef.current && !isAuthenticated) {
+      // Small delay to ensure state is stable
+      const timeoutId = setTimeout(() => {
+        if (!isLoading && !isAuthenticated) {
+          setIsLoggingOut(true);
+          router.push('/');
+        }
       }, 100);
-    }
-    
-    // Update ref only after initialization
-    if (hasInitializedRef.current) {
-      wasAuthenticatedRef.current = isAuthenticated;
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -538,21 +545,18 @@ export default function AdminPage() {
   };
 
   const renderContent = () => {
-    // Wait silently during loading - don't show anything
-    if (isLoggingOut || (isLoading && wasAuthenticatedRef.current)) {
-      return null;
-    }
+    // REQUIRED GUARD LOGIC - Must match exact behavior:
+    // If loading === true → render nothing or a loader
+    // If loading === false AND admin === null → redirect to admin login (handled in useEffect)
+    // If admin !== null → allow access
 
-    // Wait silently during "login as" transition - don't show anything
-    if (isLoggingAs) {
-      return null;
-    }
-
-    // Wait silently for auth to finish loading - don't show anything
+    // 1. If loading is true → render nothing (wait for auth rehydration)
     if (isLoading) {
       return null;
     }
 
+    // 2. If loading is false AND user is not authenticated → show login prompt
+    // (Redirect is handled in useEffect, but we show login UI here)
     if (!isAuthenticated) {
       return (
         <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-8 text-center">
@@ -571,6 +575,7 @@ export default function AdminPage() {
       );
     }
 
+    // 3. If user is authenticated but not admin (and not impersonating) → show access denied
     if (!isAdmin && !isLoggingAs) {
       return (
         <div className="bg-white rounded-xl border border-red-200 shadow-sm p-8 text-center">
@@ -581,6 +586,12 @@ export default function AdminPage() {
           </p>
         </div>
       );
+    }
+
+    // 4. If admin !== null → allow access (render admin content)
+    // Additional checks for transitions
+    if (isLoggingOut || isLoggingAs) {
+      return null;
     }
 
     return (
