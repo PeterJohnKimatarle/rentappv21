@@ -1,0 +1,14 @@
+{
+    "name": "Rentapp",
+    "short_name": "Rentapp",
+    "icons": [
+      {
+        "src": "/icon.png",
+        "sizes": "1024x1024",
+        "type": "image/png"
+      }
+    ],
+    "display": "standalone",
+    "start_url": "/"
+  }
+  
