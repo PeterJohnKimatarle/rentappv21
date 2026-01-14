@@ -1242,14 +1242,9 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     e.stopPropagation();
                     e.preventDefault();
                     // Load private notes
-                    if (typeof window !== 'undefined') {
-                      if (user.role === 'admin') {
-                        // For admin, don't load into textarea - modal will show all notes
-                        setPrivateNotes('');
-                      } else {
-                        const notes = getPrivateNotes(property.id, userId);
-                        setPrivateNotes(notes);
-                      }
+                    if (typeof window !== 'undefined' && userId) {
+                      const notes = getPrivateNotes(property.id, userId);
+                      setPrivateNotes(notes);
                     }
                     setIsPrivateNotesEditable(false);
                     setShowPrivateNotesModal(true);
@@ -1648,7 +1643,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
           >
             <div className="flex justify-between items-center mb-3 relative pt-1">
               <h3 className="text-xl font-semibold text-black flex-1 text-center">
-                {user.role === 'admin' ? 'Private Notes (All Users)' : 'Private Notes'}
+                Private Notes
               </h3>
               <button
                 onClick={(e) => {
@@ -1663,124 +1658,90 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
               </button>
             </div>
             
-            {user.role === 'admin' ? (
-              // Admin view: Show all users' private notes (read-only)
-              <div className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 max-h-60 overflow-y-auto">
-                {(() => {
-                  const allNotes: Array<{ userId: string; notes: string }> = [];
-                  if (typeof window !== 'undefined') {
-                    for (let i = 0; i < localStorage.length; i++) {
-                      const key = localStorage.key(i);
-                      if (key && key.startsWith('rentapp_notes_') && key.endsWith(`_${property.id}`) && !key.startsWith('rentapp_notes_staff_')) {
-                        const match = key.match(/rentapp_notes_(.+?)_(.+)/);
-                        if (match) {
-                          const notes = localStorage.getItem(key) || '';
-                          if (notes.trim().length > 0) {
-                            allNotes.push({ userId: match[1], notes });
-                          }
-                        }
-                      }
+            {/* Regular user view: Editable notes */}
+            <textarea
+              ref={privateNotesTextareaRef}
+              className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isPrivateNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
+              placeholder={isPrivateNotesEditable ? "Add your private notes about this property..." : "Double-click to edit/add notes..."}
+              rows={6}
+              value={privateNotes}
+              onChange={(e) => setPrivateNotes(e.target.value)}
+              readOnly={!isPrivateNotesEditable}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                setIsPrivateNotesEditable(true);
+                requestAnimationFrame(() => {
+                  setTimeout(() => {
+                    if (privateNotesTextareaRef.current) {
+                      privateNotesTextareaRef.current.removeAttribute('readonly');
+                      privateNotesTextareaRef.current.focus();
+                      const length = privateNotesTextareaRef.current.value.length;
+                      privateNotesTextareaRef.current.setSelectionRange(length, length);
                     }
+                  }, 0);
+                });
+              }}
+              onTouchStart={(e) => {
+                if (!isPrivateNotesEditable) {
+                  const target = e.currentTarget;
+                  const now = Date.now();
+                  const lastTap = (target as any).lastTap || 0;
+                  
+                  if (now - lastTap < 300) {
+                    e.preventDefault();
+                    setIsPrivateNotesEditable(true);
+                    requestAnimationFrame(() => {
+                      setTimeout(() => {
+                        target.removeAttribute('readonly');
+                        target.focus();
+                        const length = target.value.length;
+                        target.setSelectionRange(length, length);
+                      }, 0);
+                    });
                   }
-                  if (allNotes.length === 0) {
-                    return <p className="text-gray-500 text-sm">No private notes from any users.</p>;
-                  }
-                  return allNotes.map((item, index) => (
-                    <div key={index} className="mb-3 pb-3 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
-                      <p className="text-xs text-gray-500 mb-1">User ID: {item.userId}</p>
-                      <p className="text-sm whitespace-pre-wrap">{item.notes}</p>
-                    </div>
-                  ));
-                })()}
-              </div>
-            ) : (
-              // Regular user view: Editable notes
-              <textarea
-                ref={privateNotesTextareaRef}
-                className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isPrivateNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
-                placeholder={isPrivateNotesEditable ? "Add your private notes about this property..." : "Double-click to edit/add notes..."}
-                rows={6}
-                value={privateNotes}
-                onChange={(e) => setPrivateNotes(e.target.value)}
-                readOnly={!isPrivateNotesEditable}
-                onDoubleClick={(e) => {
-                  e.preventDefault();
-                  setIsPrivateNotesEditable(true);
-                  requestAnimationFrame(() => {
-                    setTimeout(() => {
-                      if (privateNotesTextareaRef.current) {
-                        privateNotesTextareaRef.current.removeAttribute('readonly');
-                        privateNotesTextareaRef.current.focus();
-                        const length = privateNotesTextareaRef.current.value.length;
-                        privateNotesTextareaRef.current.setSelectionRange(length, length);
-                      }
-                    }, 0);
-                  });
-                }}
-                onTouchStart={(e) => {
-                  if (!isPrivateNotesEditable) {
-                    const target = e.currentTarget;
-                    const now = Date.now();
-                    const lastTap = (target as any).lastTap || 0;
-                    
-                    if (now - lastTap < 300) {
-                      e.preventDefault();
-                      setIsPrivateNotesEditable(true);
-                      requestAnimationFrame(() => {
-                        setTimeout(() => {
-                          target.removeAttribute('readonly');
-                          target.focus();
-                          const length = target.value.length;
-                          target.setSelectionRange(length, length);
-                        }, 0);
-                      });
-                    }
-                    (target as any).lastTap = now;
-                  }
-                }}
-              />
-            )}
+                  (target as any).lastTap = now;
+                }
+              }}
+            />
 
             <div className="flex gap-2 mt-1.5">
-              {user.role !== 'admin' && (
-                <button
-                  onClick={() => {
-                    if (typeof window !== 'undefined' && userId) {
-                      savePrivateNotes(property.id, userId, privateNotes);
-                      setHasPrivateNotes(privateNotes.trim().length > 0);
-                      // Track the property when notes are edited
-                      if (onManageStart) {
-                        onManageStart();
-                      }
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined' && userId) {
+                    savePrivateNotes(property.id, userId, privateNotes);
+                    setHasPrivateNotes(privateNotes.trim().length > 0);
+                    // Track the property when notes are edited
+                    if (onManageStart) {
+                      onManageStart();
                     }
-                    setIsPrivateNotesEditable(false);
-                    setShowPrivateNotesModal(false);
-                  }}
-                  className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
-                  style={{ 
-                    backgroundColor: 'rgba(34, 197, 94, 0.9)',
-                    WebkitTapHighlightColor: 'transparent',
-                    WebkitUserSelect: 'none',
-                    MozUserSelect: 'none',
-                    msUserSelect: 'none',
-                    userSelect: 'none',
-                    outline: 'none'
-                  }}
-                >
-                  Save
-                </button>
-              )}
+                  }
+                  setIsPrivateNotesEditable(false);
+                  setShowPrivateNotesModal(false);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
+                style={{ 
+                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                Save
+              </button>
               <button
                 onClick={() => {
                   setIsPrivateNotesEditable(false);
                   setShowPrivateNotesModal(false);
                   // Reset to saved notes
-                  if (typeof window !== 'undefined' && userId && user.role !== 'admin') {
+                  if (typeof window !== 'undefined' && userId) {
                     const savedNotes = getPrivateNotes(property.id, userId);
                     setPrivateNotes(savedNotes);
                   }
                 }}
-                className={`px-4 py-2 rounded-lg font-medium text-white select-none ${user.role === 'admin' ? 'w-full' : 'flex-1'}`}
+                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
                 style={{ 
                   backgroundColor: '#ef4444',
                   WebkitTapHighlightColor: 'transparent',
@@ -1791,7 +1752,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   outline: 'none'
                 }}
               >
-                {user.role === 'admin' ? 'Close' : 'Cancel'}
+                Cancel
               </button>
             </div>
           </div>
@@ -1823,22 +1784,18 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
             </div>
             <div className="mb-4 space-y-3">
               <p className="text-gray-700 text-base leading-relaxed">
-                {user?.role === 'admin' 
-                  ? 'These private notes are only visible to the uploader of each property. As an admin, you can view all users\' private notes, but they cannot see each other\'s notes.'
-                  : 'These notes are completely private and only visible to you. No one else can see them.'}
+                These notes are completely private and only visible to you. No one else can see them.
               </p>
-              {user?.role !== 'admin' && (
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                  <p className="text-gray-700 text-sm leading-relaxed font-medium mb-1">Why private notes are important:</p>
-                  <ul className="text-gray-700 text-sm leading-relaxed space-y-1 ml-4 list-disc">
-                    <li>Track inquiries and interactions with potential tenants</li>
-                    <li>Remember important details about your property</li>
-                    <li>Keep notes on maintenance schedules and reminders</li>
-                    <li>Document property history and updates</li>
-                    <li>Manage multiple properties more effectively</li>
-                  </ul>
-                </div>
-              )}
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                <p className="text-gray-700 text-sm leading-relaxed font-medium mb-1">Why private notes are important:</p>
+                <ul className="text-gray-700 text-sm leading-relaxed space-y-1 ml-4 list-disc">
+                  <li>Track inquiries and interactions with potential tenants</li>
+                  <li>Remember important details about your property</li>
+                  <li>Keep notes on maintenance schedules and reminders</li>
+                  <li>Document property history and updates</li>
+                  <li>Manage multiple properties more effectively</li>
+                </ul>
+              </div>
             </div>
             <button
               onClick={() => setShowPrivateNotesInfo(false)}
