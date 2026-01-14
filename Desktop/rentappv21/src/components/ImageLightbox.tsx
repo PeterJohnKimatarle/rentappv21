@@ -71,13 +71,35 @@ export default function ImageLightbox({
     img.src = images[index];
   }, [images]);
 
-  // Preload all images when lightbox opens
+  // Preload all images when lightbox opens and check cache immediately
   useEffect(() => {
-    // Preload all images immediately for better UX
     images.forEach((_, index) => {
-      preloadImage(index);
+      if (preloadedImagesRef.current.has(index)) {
+        return;
+      }
+      
+      const img = new window.Image();
+      img.src = images[index];
+      
+      if (img.complete && img.naturalWidth > 0) {
+        preloadedImagesRef.current.add(index);
+        setPreloadedImages(new Set(preloadedImagesRef.current));
+      } else {
+        preloadImage(index);
+      }
     });
-  }, [images, preloadImage]);
+    
+    // Check if current image is cached and set loading state immediately
+    const currentImg = new window.Image();
+    currentImg.src = images[currentIndex];
+    if (currentImg.complete && currentImg.naturalWidth > 0) {
+      setIsLoading(false);
+      if (!preloadedImagesRef.current.has(currentIndex)) {
+        preloadedImagesRef.current.add(currentIndex);
+        setPreloadedImages(new Set(preloadedImagesRef.current));
+      }
+    }
+  }, [images, preloadImage, currentIndex]);
 
   // Handle image changes - optimize loading state
   useEffect(() => {
@@ -87,63 +109,35 @@ export default function ImageLightbox({
     if (preloadedImagesRef.current.has(currentIndex)) {
       setIsLoading(false);
     } else {
-      // Preload the image and check cache
+      // Check if image is already in browser cache synchronously
       const img = new window.Image();
-      let imageLoaded = false;
-      
-      img.onload = () => {
-        imageLoaded = true;
-        setIsLoading(false);
-        if (!preloadedImagesRef.current.has(currentIndex)) {
-          preloadedImagesRef.current.add(currentIndex);
-          setPreloadedImages(new Set(preloadedImagesRef.current));
-        }
-      };
-      
-      img.onerror = () => {
-        setIsLoading(false);
-        setImageError(true);
-      };
-      
       img.src = images[currentIndex];
       
-      // Check if image is already cached (complete immediately)
-      // Use a small timeout to allow cached images to load instantly
-      const timeoutId = setTimeout(() => {
-        if (!imageLoaded && img.complete && img.naturalWidth > 0) {
+      // Check immediately if image is cached (synchronous check)
+      if (img.complete && img.naturalWidth > 0) {
+        // Image is cached, no loading needed
+        setIsLoading(false);
+        preloadedImagesRef.current.add(currentIndex);
+        setPreloadedImages(new Set(preloadedImagesRef.current));
+      } else {
+        // Image needs to load, set up handlers
+        setIsLoading(true);
+        
+        img.onload = () => {
           setIsLoading(false);
           if (!preloadedImagesRef.current.has(currentIndex)) {
             preloadedImagesRef.current.add(currentIndex);
             setPreloadedImages(new Set(preloadedImagesRef.current));
           }
-        } else if (!imageLoaded) {
-          // Only show loading if image hasn't loaded after a brief moment
-          setIsLoading(true);
-        }
-      }, 50);
+        };
+        
+        img.onerror = () => {
+          setIsLoading(false);
+          setImageError(true);
+        };
+      }
       
-      return () => clearTimeout(timeoutId);
-    }
-    
-    // Preload adjacent images for smooth navigation
-    const nextIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
-    preloadImage(nextIndex);
-    
-    const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
-    preloadImage(prevIndex);
-  }, [currentIndex, images.length, preloadImage, images]);
-
-  // Handle image changes - check if already preloaded
-  useEffect(() => {
-    // Check if current image is already preloaded
-    if (preloadedImagesRef.current.has(currentIndex)) {
-      setIsLoading(false);
-      setImageError(false);
-    } else {
-      // Only show loading if image is not preloaded
-      setIsLoading(true);
-      setImageError(false);
-      // Preload current image
+      // Also use preload function to track
       preloadImage(currentIndex);
     }
     
@@ -153,7 +147,7 @@ export default function ImageLightbox({
     
     const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
     preloadImage(prevIndex);
-  }, [currentIndex, images.length, preloadImage]);
+  }, [currentIndex, images.length, preloadImage, images]);
 
   // Prevent body scroll when lightbox is open
   usePreventScroll(images.length > 0);
@@ -248,23 +242,26 @@ export default function ImageLightbox({
     }
   };
 
-  const onTouchEnd = () => {
+  const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStart && touchEnd && scale === 1) {
-      // Single touch swipe - only when not zoomed
       const distanceX = touchStart.x - touchEnd.x;
       const distanceY = touchEnd.y - touchStart.y;
       const absDistanceX = Math.abs(distanceX);
       const absDistanceY = Math.abs(distanceY);
       
-      // For both profile and property images: swipe down to close
       if (absDistanceY > absDistanceX) {
-        // Vertical swipe - swipe down to close
         const isDownSwipe = distanceY > minSwipeDistance;
         if (isDownSwipe) {
+          e.preventDefault();
+          e.stopPropagation();
+          setTouchStart(null);
+          setTouchEnd(null);
+          setPinchStart(null);
+          setIsDragging(false);
           onClose();
+          return;
         }
       } else if (absDistanceX > absDistanceY && !rounded) {
-        // Horizontal swipe for navigation (only for property images, not profile images)
         const isLeftSwipe = distanceX > minSwipeDistance;
         const isRightSwipe = distanceX < -minSwipeDistance;
 

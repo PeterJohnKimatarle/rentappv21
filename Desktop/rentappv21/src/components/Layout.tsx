@@ -44,20 +44,49 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
   const [searchBarPosition, setSearchBarPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const avatarSrc = user?.profileImage && user.profileImage.trim() !== '' ? user.profileImage : '/images/reed-richards.png';
 
+  // Helper function to check if page is zoomed in
+  const isPageZoomed = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    
+    // Check visual viewport scale (most reliable for mobile)
+    if (window.visualViewport && window.visualViewport.scale !== 1) {
+      return true;
+    }
+    
+    // Fallback: compare viewport width with expected width
+    const expectedWidth = window.screen.width / window.devicePixelRatio;
+    const actualWidth = window.innerWidth;
+    const zoomThreshold = 0.95; // Allow small differences due to rounding
+    
+    return actualWidth < expectedWidth * zoomThreshold;
+  }, []);
+
   // Touch event handlers for mobile menu swipe gestures - mirroring SearchPopup implementation
   const menuTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const menuTouchEndRef = useRef<{ x: number; y: number } | null>(null);
   const menuMinSwipeDistance = 50;
 
   const menuOnTouchStart = useCallback((e: React.TouchEvent) => {
+    // Disable swipe gestures when page is zoomed in
+    if (isPageZoomed()) {
+      return;
+    }
+    
     menuTouchEndRef.current = null;
     menuTouchStartRef.current = {
       x: e.targetTouches[0].clientX,
       y: e.targetTouches[0].clientY,
     };
-  }, []);
+  }, [isPageZoomed]);
 
   const menuOnTouchEnd = useCallback(() => {
+    // Disable swipe gestures when page is zoomed in
+    if (isPageZoomed()) {
+      menuTouchStartRef.current = null;
+      menuTouchEndRef.current = null;
+      return;
+    }
+    
     const touchStart = menuTouchStartRef.current;
     const touchEnd = menuTouchEndRef.current;
 
@@ -80,7 +109,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
     // Reset refs after handling
     menuTouchStartRef.current = null;
     menuTouchEndRef.current = null;
-  }, []);
+  }, [isPageZoomed]);
 
   // Keep tracking swipe while blocking background scroll - mirroring SearchPopup
   const menuHandleOverlayTouchMove = useCallback((e: React.TouchEvent) => {
@@ -137,6 +166,11 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
       return;
     }
 
+    // Disable swipe gestures when page is zoomed in
+    if (isPageZoomed()) {
+      return;
+    }
+
     // Hard global guard: Block gestures if ANY modal/overlay is visible
     if (isInteractionLocked()) {
       return;
@@ -147,7 +181,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
       x: e.targetTouches[0].clientX,
       y: e.targetTouches[0].clientY,
     };
-  }, [pathname]);
+  }, [pathname, isPageZoomed]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     // Use ref to avoid re-renders - no state updates during move
@@ -160,6 +194,13 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
   const onTouchEnd = useCallback(() => {
     // Disable global swipe gestures on list-property page
     if (pathname === '/list-property') {
+      return;
+    }
+
+    // Disable swipe gestures when page is zoomed in
+    if (isPageZoomed()) {
+      touchStartRef.current = null;
+      touchEndRef.current = null;
       return;
     }
 
@@ -229,7 +270,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
     // Reset refs after handling
     touchStartRef.current = null;
     touchEndRef.current = null;
-  }, [pathname, isMobileMenuOpen, isSearchPopupOpen]);
+  }, [pathname, isMobileMenuOpen, isSearchPopupOpen, isPageZoomed]);
 
   // Helper to build search URL from session filters
   const buildSearchUrl = useCallback(() => {

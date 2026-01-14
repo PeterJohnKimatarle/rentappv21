@@ -198,6 +198,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
   const [isArrowHovered, setIsArrowHovered] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const imageTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const minSwipeDistance = 30; // Minimum distance to consider it a swipe
   const [isShareSpinning, setIsShareSpinning] = useState(false);
   const [lastViewedId, setLastViewedId] = useState<string | null>(null);
   const [showBookmarkPopup, setShowBookmarkPopup] = useState(false);
@@ -515,10 +517,47 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
     }
   };
 
-  const handleImageClick = () => {
+  const handleImageClick = (e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setIsLightboxOpen(true);
     setCurrentImageIndex(previewImageIndex);
     markPropertyAsViewed();
+  };
+
+  const handleImageTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    imageTouchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  };
+
+  const handleImageTouchEnd = (e: React.TouchEvent) => {
+    if (!imageTouchStartRef.current) {
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const touchEnd = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+
+    const distanceX = Math.abs(imageTouchStartRef.current.x - touchEnd.x);
+    const distanceY = Math.abs(imageTouchStartRef.current.y - touchEnd.y);
+    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+    // Only open lightbox if it was a tap (minimal movement), not a swipe
+    if (distance < minSwipeDistance) {
+      e.preventDefault();
+      handleImageClick(e);
+    }
+
+    // Reset touch start
+    imageTouchStartRef.current = null;
   };
 
   const handlePreviousImage = (e: React.MouseEvent) => {
@@ -737,12 +776,15 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
               <img
                 src={property.images[0]}
                 alt={property.title}
-                  className="w-full h-full object-cover cursor-pointer xl:hidden"
+                className="w-full h-full object-cover cursor-pointer xl:hidden"
                 onClick={handleImageClick}
+                onTouchStart={handleImageTouchStart}
+                onTouchEnd={handleImageTouchEnd}
                 onError={() => setImageError(true)}
                 style={{ 
                   opacity: isImageLoaded ? 1 : 0,
-                  transition: 'opacity 0.3s ease-in-out'
+                  transition: 'opacity 0.3s ease-in-out',
+                  touchAction: 'manipulation'
                 }}
               />
                 <img
@@ -750,10 +792,13 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   alt={property.title}
                   className="hidden xl:block w-full h-full object-cover cursor-pointer"
                   onClick={handleImageClick}
+                  onTouchStart={handleImageTouchStart}
+                  onTouchEnd={handleImageTouchEnd}
                   onError={() => setImageError(true)}
                   style={{ 
                     opacity: isImageLoaded ? 1 : 0,
-                    transition: 'opacity 0.3s ease-in-out'
+                    transition: 'opacity 0.3s ease-in-out',
+                    touchAction: 'manipulation'
                   }}
                 />
                 {/* Navigation Arrows - Only on Desktop (xl and above) */}
