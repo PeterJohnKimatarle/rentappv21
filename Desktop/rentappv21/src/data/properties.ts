@@ -14,7 +14,7 @@ export interface Property {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
-  uploaderType?: 'Broker' | 'Owner';
+  uploaderType?: 'Broker' | 'Owner' | 'Manager';
   propertyTitle?: string;
   amenities: string[];
 }

@@ -558,7 +558,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
         router.push('/');
       }
     }
-    onClose();
+    // Don't close modal - user can use Close button if they want to exit
   };
 
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1280;
@@ -569,7 +569,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
     if (isUserMode) {
       if (typeof window !== 'undefined') {
         if ((window as any).__adminCurrentView === 'staff') {
-          return 'Search staff members';
+          return 'Search all users';
         }
         if ((window as any).__staffCurrentView === 'users') {
           return 'Search all users';

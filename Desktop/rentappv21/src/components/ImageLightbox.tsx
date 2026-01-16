@@ -27,6 +27,7 @@ export default function ImageLightbox({
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const preloadedImagesRef = useRef<Set<number>>(new Set());
   const router = useRouter();
+  const [showBackButtonMessage, setShowBackButtonMessage] = useState(false);
   
   // Zoom and pan state - simpler approach
   const [scale, setScale] = useState(1);
@@ -151,6 +152,55 @@ export default function ImageLightbox({
 
   // Prevent body scroll when lightbox is open
   usePreventScroll(images.length > 0);
+
+  // Handle browser/device back button - show message when pressed
+  useEffect(() => {
+    // Push a state to history when lightbox opens
+    // This intercepts back button presses
+    const lightboxId = `lightbox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const lightboxState = { 
+      lightboxOpen: true,
+      lightboxId: lightboxId
+    };
+    
+    let isLightboxOpen = true;
+    let hasPushedState = false;
+    
+    const handlePopState = () => {
+      // When back button is pressed while lightbox is open, show message immediately
+      if (isLightboxOpen && hasPushedState) {
+        // Push state back to prevent navigation
+        window.history.pushState(lightboxState, '');
+        // Show message immediately
+        setShowBackButtonMessage(true);
+        // Hide message after 3 seconds
+        setTimeout(() => {
+          setShowBackButtonMessage(false);
+        }, 3000);
+      }
+    };
+
+    // Add listener BEFORE pushing state
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push state AFTER listener is attached
+    window.history.pushState(lightboxState, '');
+    hasPushedState = true;
+
+    return () => {
+      isLightboxOpen = false;
+      window.removeEventListener('popstate', handlePopState);
+      
+      // Clean up: remove our history entry when lightbox closes normally
+      // Don't use history.back() as it causes flashes - just replace our state with null
+      const currentState = window.history.state;
+      if (currentState?.lightboxOpen && currentState?.lightboxId === lightboxId) {
+        // Replace our lightbox state with null (removes it silently)
+        // This doesn't cause navigation or flashes
+        window.history.replaceState(null, '');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -325,7 +375,6 @@ export default function ImageLightbox({
            style={{ touchAction: 'none', minHeight: '100vh', height: '100%' }} 
            onClick={(e) => e.stopPropagation()}
          >
-
       {/* Navigation Arrows - Desktop Only */}
       {images.length > 1 && (
         <>
@@ -361,6 +410,14 @@ export default function ImageLightbox({
         onMouseLeave={handleMouseUp}
         onClick={handleImageClick}
       >
+        {/* Back Button Message */}
+        {showBackButtonMessage && (
+          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-[60] bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-2xl animate-fade-in">
+            <p className="text-black text-base font-semibold text-center whitespace-nowrap">
+              Swipe down to close the image
+            </p>
+          </div>
+        )}
         {/* Reset Zoom Button - Absolute position relative to container, only show when zoomed */}
         {scale > 1 && (
           <button

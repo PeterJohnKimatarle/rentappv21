@@ -29,7 +29,7 @@ export interface PropertyFormData {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
-  uploaderType?: 'Broker' | 'Owner';
+  uploaderType?: 'Broker' | 'Owner' | 'Manager';
   propertyTitle?: string;
   petPolicy?: string;
   parking?: string;
@@ -69,7 +69,7 @@ export interface DisplayProperty {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
-  uploaderType?: 'Broker' | 'Owner';
+  uploaderType?: 'Broker' | 'Owner' | 'Manager';
   propertyTitle?: string;
   petPolicy?: string;
   parking?: string;

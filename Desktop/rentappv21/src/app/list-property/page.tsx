@@ -80,7 +80,7 @@ interface Property {
   amenities: string[];
   images: string[];
   description?: string;
-  uploaderType?: 'Broker' | 'Owner';
+  uploaderType?: 'Broker' | 'Owner' | 'Manager';
   createdAt: string;
   ownerId?: string;
   ownerEmail?: string;
@@ -131,7 +131,7 @@ export default function ListPropertyPage() {
     amenities: [] as string[],
     mainImage: '',
     additionalImages: [] as string[],
-    uploaderType: '' as 'Broker' | 'Owner' | '',
+    uploaderType: '' as 'Broker' | 'Owner' | 'Manager' | '',
     propertyTitle: '', // New property title field
     description: '',
     bathrooms: '',
@@ -476,7 +476,7 @@ export default function ListPropertyPage() {
       paymentPlan: formData.paymentPlan,
       amenities: formData.amenities,
       images: [formData.mainImage, ...formData.additionalImages].filter(img => img), // Combine main and additional images
-      uploaderType: (formData.uploaderType === 'Broker' || formData.uploaderType === 'Owner') ? formData.uploaderType : undefined,
+      uploaderType: (formData.uploaderType === 'Broker' || formData.uploaderType === 'Owner' || formData.uploaderType === 'Manager') ? formData.uploaderType : undefined,
       createdAt: new Date().toISOString(),
       ownerId: user.id,
       ownerEmail: user.email,
@@ -1027,6 +1027,7 @@ export default function ListPropertyPage() {
                 >
                   <option value="" className="text-gray-400">---</option>
                   <option value="Owner">I own this property (Owner)</option>
+                  <option value="Manager">I manage this property (Manager)</option>
                   <option value="Broker">I do not own this property (Broker)</option>
                 </select>
               </div>

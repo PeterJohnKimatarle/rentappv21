@@ -430,8 +430,8 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
     }
 
     // Check uploaderType separately (normalize empty string to undefined for comparison)
-    const formUploaderType = (currentFormData.uploaderType === 'Broker' || currentFormData.uploaderType === 'Owner') ? currentFormData.uploaderType : undefined;
-    const originalUploaderType = (originalProperty.uploaderType === 'Broker' || originalProperty.uploaderType === 'Owner') ? originalProperty.uploaderType : undefined;
+    const formUploaderType = (currentFormData.uploaderType === 'Broker' || currentFormData.uploaderType === 'Owner' || currentFormData.uploaderType === 'Manager') ? currentFormData.uploaderType : undefined;
+    const originalUploaderType = (originalProperty.uploaderType === 'Broker' || originalProperty.uploaderType === 'Owner' || originalProperty.uploaderType === 'Manager') ? originalProperty.uploaderType : undefined;
     if (formUploaderType !== originalUploaderType) {
       return true;
     }
@@ -481,7 +481,7 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
       region: finalRegion,
       ward: finalWard,
       // Normalize uploaderType: empty string becomes undefined
-      uploaderType: (finalFormData.uploaderType === 'Broker' || finalFormData.uploaderType === 'Owner') ? finalFormData.uploaderType : undefined,
+      uploaderType: (finalFormData.uploaderType === 'Broker' || finalFormData.uploaderType === 'Owner' || finalFormData.uploaderType === 'Manager') ? finalFormData.uploaderType : undefined,
     };
 
     // Stage the changes - don't save yet
@@ -975,6 +975,7 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
               >
                 <option value="" className="text-gray-400">---</option>
                 <option value="Owner">I own this property (Owner)</option>
+                <option value="Manager">I manage this property (Manager)</option>
                 <option value="Broker">I do not own this property (Broker)</option>
               </select>
             </div>
