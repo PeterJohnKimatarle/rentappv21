@@ -154,13 +154,34 @@ export default function PropertyDetailsPage() {
       ? `${window.location.origin}/property/${property.id}`
       : `/property/${property.id}`;
     
-    const mainImageUrl = property.images && property.images.length > 0 
-      ? (property.images[0].startsWith('http') 
-          ? property.images[0] 
-          : typeof window !== 'undefined' 
-            ? `${window.location.origin}${property.images[0]}` 
-            : property.images[0])
-      : '';
+    // Get main image URL (first image in array is always the main image)
+    // For Open Graph to work, images must be hosted URLs (not base64 data URLs)
+    // Note: property.images[0] is the main image as set during listing
+    let mainImageUrl = '';
+    const mainImage = property.images && property.images.length > 0 ? property.images[0] : null;
+    if (mainImage) {
+      const firstImage = mainImage.trim();
+      
+      // Skip empty strings
+      if (!firstImage) {
+        mainImageUrl = '';
+      } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+        // Already an absolute URL - use as is
+        mainImageUrl = firstImage;
+      } else if (firstImage.startsWith('data:image')) {
+        // Base64 data URL - skip for Open Graph (too long, not supported by crawlers)
+        // These won't work for link previews, but won't cause errors either
+        mainImageUrl = '';
+      } else if (typeof window !== 'undefined') {
+        // Relative URL or path - make it absolute
+        const origin = window.location.origin;
+        // Ensure it starts with / and is properly formatted
+        const imagePath = firstImage.startsWith('/') ? firstImage : `/${firstImage}`;
+        // Remove any double slashes except after http:// or https://
+        const cleanPath = imagePath.replace(/([^:]\/)\/+/g, '$1');
+        mainImageUrl = `${origin}${cleanPath}`;
+      }
+    }
 
     // Update or create meta tags
     const updateMetaTag = (property: string, content: string) => {
@@ -185,17 +206,36 @@ export default function PropertyDetailsPage() {
     };
 
     // Set Open Graph tags
-    updateMetaTag('og:title', property.title);
-    updateMetaTag('og:description', property.description || `${property.title} - ${property.location}`);
-    updateMetaTag('og:image', mainImageUrl);
+    const safeTitle = property.title || 'Property on Rentapp';
+    const safeDescription = property.description || `${safeTitle} - ${property.location || 'Tanzania'}`;
+    
+    updateMetaTag('og:title', safeTitle);
+    updateMetaTag('og:description', safeDescription);
+    
+    // Only set og:image if we have a valid hosted URL (not base64)
+    if (mainImageUrl && !mainImageUrl.startsWith('data:') && mainImageUrl.length > 0) {
+      updateMetaTag('og:image', mainImageUrl);
+      updateMetaTag('og:image:type', 'image/jpeg');
+      updateMetaTag('og:image:alt', safeTitle);
+      // Set secure URL if using HTTPS
+      if (mainImageUrl.startsWith('https://')) {
+        updateMetaTag('og:image:secure_url', mainImageUrl);
+      }
+    }
+    
     updateMetaTag('og:url', propertyUrl);
     updateMetaTag('og:type', 'website');
+    updateMetaTag('og:site_name', 'Rentapp');
 
     // Set Twitter Card tags (for better compatibility)
     updateMetaTag('twitter:card', 'summary_large_image');
-    updateMetaTag('twitter:title', property.title);
-    updateMetaTag('twitter:description', property.description || `${property.title} - ${property.location}`);
-    updateMetaTag('twitter:image', mainImageUrl);
+    updateMetaTag('twitter:title', safeTitle);
+    updateMetaTag('twitter:description', safeDescription);
+    
+    // Only set twitter:image if we have a valid hosted URL
+    if (mainImageUrl && !mainImageUrl.startsWith('data:') && mainImageUrl.length > 0) {
+      updateMetaTag('twitter:image', mainImageUrl);
+    }
 
     // Update page title
     document.title = `${property.title} - Rentapp`;
