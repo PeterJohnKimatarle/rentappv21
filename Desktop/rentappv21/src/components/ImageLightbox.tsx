@@ -34,6 +34,7 @@ export default function ImageLightbox({
   const [translateX, setTranslateX] = useState(0);
   const [translateY, setTranslateY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isZooming, setIsZooming] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -264,6 +265,7 @@ export default function ImageLightbox({
       // Two touches - pinch to zoom
       const distance = getDistance(e.touches[0], e.touches[1]);
       setPinchStart({ distance, scale });
+      setIsZooming(true); // Mark as actively zooming for smooth performance
     }
   };
 
@@ -293,6 +295,11 @@ export default function ImageLightbox({
   };
 
   const onTouchEnd = (e: React.TouchEvent) => {
+    // Reset zooming state when touch ends
+    if (e.touches.length < 2) {
+      setIsZooming(false);
+    }
+    
     if (touchStart && touchEnd && scale === 1) {
       const distanceX = touchStart.x - touchEnd.x;
       const distanceY = touchEnd.y - touchStart.y;
@@ -492,14 +499,19 @@ export default function ImageLightbox({
                    onLoad={handleImageLoad}
                    onError={handleImageError}
                    draggable={false}
-                   style={{ 
-                     opacity: isCurrentImagePreloaded ? 1 : (isLoading ? 0.3 : 1),
-                     transition: isCurrentImagePreloaded 
-                       ? (scale === 1 ? 'transform 0.2s ease-out' : 'transform 0.2s ease-out')
-                       : (scale === 1 ? 'opacity 0.15s ease-in-out, transform 0.2s ease-out' : 'opacity 0.15s ease-in-out'),
-                     transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
-                     transformOrigin: 'center center'
-                   }}
+                  style={{ 
+                    opacity: isCurrentImagePreloaded ? 1 : (isLoading ? 0.3 : 1),
+                    // Disable transitions during active zooming/pinning for smooth real-time response
+                    // Only apply transitions when not actively zooming
+                    transition: isZooming || isDragging
+                      ? 'none'
+                      : isCurrentImagePreloaded 
+                        ? 'transform 0.2s ease-out'
+                        : 'opacity 0.15s ease-in-out, transform 0.2s ease-out',
+                    transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
+                    transformOrigin: 'center center',
+                    willChange: isZooming || isDragging ? 'transform' : 'auto' // Optimize performance during zoom/pan
+                  }}
                  />
                )}
         
