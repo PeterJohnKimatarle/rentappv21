@@ -375,6 +375,15 @@ export default function ImageLightbox({
            style={{ touchAction: 'none', minHeight: '100vh', height: '100%' }} 
            onClick={(e) => e.stopPropagation()}
          >
+      {/* Back Button Message */}
+      {showBackButtonMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-2xl animate-fade-in">
+          <p className="text-black text-base font-semibold text-center whitespace-nowrap">
+            Swipe down to close the image
+          </p>
+        </div>
+      )}
+
       {/* Navigation Arrows - Desktop Only */}
       {images.length > 1 && (
         <>
@@ -410,14 +419,6 @@ export default function ImageLightbox({
         onMouseLeave={handleMouseUp}
         onClick={handleImageClick}
       >
-        {/* Back Button Message */}
-        {showBackButtonMessage && (
-          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-[60] bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-2xl animate-fade-in">
-            <p className="text-black text-base font-semibold text-center whitespace-nowrap">
-              Swipe down to close the image
-            </p>
-          </div>
-        )}
         {/* Reset Zoom Button - Absolute position relative to container, only show when zoomed */}
         {scale > 1 && (
           <button
