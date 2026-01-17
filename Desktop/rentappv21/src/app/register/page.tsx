@@ -80,6 +80,20 @@ const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const router = useRouter();
 
+  // Generate year options for date picker
+  const yearOptions = React.useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const minAge = 13;
+    const maxAge = 100;
+    const startYear = currentYear - minAge;
+    const endYear = currentYear - maxAge;
+    const years = [];
+    for (let year = startYear; year >= endYear; year--) {
+      years.push(year);
+    }
+    return years;
+  }, []);
+
   useEffect(() => {
     // Check if staff enrollment is enabled
     const enabled = isStaffEnrollmentEnabled();
@@ -508,22 +522,11 @@ const RegisterPage: React.FC = () => {
                       className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white"
                     >
                       <option value="">Year</option>
-                      {(() => {
-                        const currentYear = new Date().getFullYear();
-                        const minAge = 13;
-                        const maxAge = 100; // Allow up to 100 years old
-                        const startYear = currentYear - minAge;
-                        const endYear = currentYear - maxAge;
-                        const years = [];
-                        for (let year = startYear; year >= endYear; year--) {
-                          years.push(year);
-                        }
-                        return years.map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ));
-                      })()}
+                      {yearOptions.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
