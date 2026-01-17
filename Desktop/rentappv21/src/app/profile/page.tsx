@@ -675,7 +675,7 @@ export default function ProfilePage() {
                           disabled={isAdminUser}
                         />
                         <span className={`ml-3 text-sm whitespace-nowrap ${isAdminUser ? 'text-gray-500' : 'text-gray-700'}`}>
-                          Staff {isAdminUser ? '(Not available)' : '(Requires an admin approval)'}
+                          Staff {isAdminUser ? '(Not available)' : '(Requires admin approval)'}
                         </span>
                       </label>
                       <label className="flex items-center p-3 border border-gray-300 rounded-lg transition-colors whitespace-nowrap cursor-pointer hover:bg-gray-50">

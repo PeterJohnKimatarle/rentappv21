@@ -3,10 +3,50 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Mail, Lock, User, Phone, ChevronRight, Pencil } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Phone, ChevronRight, Pencil, MapPin, Calendar } from 'lucide-react';
 import Layout from '@/components/Layout';
 import LoginPopup from '@/components/LoginPopup';
+import PopupOverlay from '@/components/PopupOverlay';
 import { isStaffEnrollmentEnabled } from '@/utils/adminSettings';
+
+// Ward data organized by region (most common and well-known wards, alphabetically sorted)
+const wardsByRegion = {
+  'arusha': ['Arusha Central', 'Arusha North', 'Arusha South', 'Engaruka', 'Karatu', 'Kimandolu', 'Kisongo', 'Longido', 'Makuyuni', 'Mbuguni', 'Meru', 'Monduli', 'Mto wa Mbu', 'Ngaramtoni', 'Ngorongoro', 'Sakina', 'Tengeru', 'Themi', 'Unga Limited', 'Usa River', 'Other'],
+  'dar-es-salaam': ['Buguruni', 'Chang\'ombe', 'Ilala', 'Kawe', 'Kariakoo', 'Kigamboni', 'Kijitonyama', 'Kinondoni', 'Kivukoni', 'Mbagala', 'Mbagala Kuu', 'Mbagala Rangi Tatu', 'Masaki', 'Mbezi', 'Mchikichini', 'Mikocheni', 'Msasani', 'Mtoni', 'Oyster Bay', 'Sinza', 'Tabata', 'Tandika', 'Temeke', 'Ubungo', 'Other'],
+  'dodoma': ['Bahi', 'Chamwino', 'Chemba', 'Dodoma Central', 'Dodoma Urban', 'Hombolo', 'Kigwe', 'Kikombo', 'Kisese', 'Kongwa', 'Makutupora', 'Mlali', 'Mpwapwa', 'Mvumi', 'Ntyuka', 'Other'],
+  'geita': ['Bukombe', 'Chato', 'Geita', 'Geita Town', 'Kakubilo', 'Katoro', 'Mabale', 'Mbogwe', 'Nyakabale', 'Nyang\'hwale', 'Other'],
+  'iringa': ['Iringa Central', 'Iringa North', 'Iringa Urban', 'Kilolo', 'Kiponzelo', 'Mafinga', 'Mlowa', 'Mufindi', 'Other'],
+  'kagera': ['Biharamulo', 'Bukoba', 'Bukoba Urban', 'Kanyigo', 'Karagwe', 'Kashasha', 'Kyerwa', 'Missenyi', 'Muleba', 'Ngara', 'Other'],
+  'katavi': ['Karema', 'Mlele', 'Mpanda', 'Mpanda Town', 'Mpanda Urban', 'Other'],
+  'kigoma': ['Buhigwe', 'Kakonko', 'Kasulu', 'Kibondo', 'Kigoma', 'Kigoma Urban', 'Uvinza', 'Other'],
+  'kilimanjaro': ['Hai', 'Mawenzi', 'Moshi', 'Moshi Urban', 'Mwanga', 'Rombo', 'Same', 'Shirimatunda', 'Siha', 'Other'],
+  'lindi': ['Kilwa', 'Kilwa Kivinje', 'Kilwa Masoko', 'Lindi', 'Lindi Urban', 'Liwale', 'Nachingwea', 'Ruangwa', 'Other'],
+  'manyara': ['Babati', 'Babati Urban', 'Dareda', 'Hanang', 'Kiteto', 'Mbulu', 'Simanjiro', 'Other'],
+  'mara': ['Bunda', 'Butiama', 'Musoma', 'Musoma Urban', 'Rorya', 'Serengeti', 'Tarime', 'Other'],
+  'mbeya': ['Busokelo', 'Chunya', 'Ileje', 'Kyela', 'Mbarali', 'Mbeya', 'Mbeya Urban', 'Mbozi', 'Momba', 'Rungwe', 'Other'],
+  'morogoro': ['Gairo', 'Kilombero', 'Kilosa', 'Malinyi', 'Morogoro', 'Morogoro Urban', 'Mvomero', 'Ulanga', 'Other'],
+  'mtwara': ['Masasi', 'Masasi Urban', 'Mtwara', 'Mtwara Urban', 'Nanyumbu', 'Newala', 'Tandahimba', 'Other'],
+  'mwanza': ['Ilemela', 'Kwimba', 'Magu', 'Misungwi', 'Mwanza Urban', 'Nyamagana', 'Sengerema', 'Ukerewe', 'Other'],
+  'njombe': ['Ludewa', 'Makambako', 'Makete', 'Njombe', 'Njombe Urban', 'Wanging\'ombe', 'Other'],
+  'pwani': ['Bagamoyo', 'Chalinze', 'Kibaha', 'Kibaha Urban', 'Kisarawe', 'Mafia', 'Mkuranga', 'Rufiji', 'Other'],
+  'rukwa': ['Kalambo', 'Nkasi', 'Sumbawanga', 'Sumbawanga Urban', 'Other'],
+  'ruvuma': ['Mbinga', 'Songea', 'Songea Urban', 'Tunduru', 'Other'],
+  'shinyanga': ['Kahama', 'Kahama Urban', 'Kishapu', 'Msalala', 'Shinyanga', 'Shinyanga Urban', 'Other'],
+  'simiyu': ['Bariadi', 'Busega', 'Itilima', 'Maswa', 'Meatu', 'Other'],
+  'singida': ['Ikungi', 'Iramba', 'Manyoni', 'Mkalama', 'Singida', 'Singida Urban', 'Other'],
+  'songwe': ['Ileje', 'Mbozi', 'Momba', 'Songwe', 'Other'],
+  'tabora': ['Igunga', 'Kaliua', 'Nzega', 'Sikonge', 'Tabora', 'Tabora Urban', 'Urambo', 'Uyui', 'Other'],
+  'tanga': ['Handeni', 'Handeni Urban', 'Kilindi', 'Korogwe', 'Korogwe Urban', 'Lushoto', 'Mkinga', 'Muheza', 'Pangani', 'Tanga', 'Tanga Urban', 'Other'],
+  'unguja-north': ['Kaskazini A', 'Kaskazini B', 'Mkokotoni', 'Nungwi', 'Other'],
+  'unguja-south': ['Kizimkazi', 'Kusini', 'Kusini Unguja', 'Makunduchi', 'Other'],
+  'urban-west': ['Magharibi', 'Malindi', 'Mjini', 'Stone Town', 'Other'],
+  'other': ['Other']
+};
+
+const regions = Object.keys(wardsByRegion).map(key => ({
+  value: key,
+  label: key.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+}));
 
 const RegisterPage: React.FC = () => {
   const [registrationType, setRegistrationType] = useState<'member' | 'staff' | 'admin'>('member');
@@ -15,11 +55,15 @@ const RegisterPage: React.FC = () => {
     lastName: '',
     email: '',
     phone: '',
+    region: '',
+    ward: '',
+    dateOfBirth: '',
     password: '',
     confirmPassword: '',
     role: 'tenant' as 'tenant' | 'landlord' | 'broker',
     profileImage: ''
   });
+  const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [previewImage, setPreviewImage] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -28,6 +72,10 @@ const RegisterPage: React.FC = () => {
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
   const [isRegisterAsExpanded, setIsRegisterAsExpanded] = useState(false);
   const [staffEnrollmentEnabled, setStaffEnrollmentEnabled] = useState(false);
+  const [birthYear, setBirthYear] = useState<string>('');
+  const [birthMonth, setBirthMonth] = useState<string>('');
+  const [birthDay, setBirthDay] = useState<string>('');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   
   const { register } = useAuth();
   const router = useRouter();
@@ -43,8 +91,121 @@ const RegisterPage: React.FC = () => {
     }
   }, [registrationType]);
 
+  // Parse dateOfBirth into year, month, day
+  useEffect(() => {
+    if (formData.dateOfBirth) {
+      const date = new Date(formData.dateOfBirth + 'T00:00:00');
+      if (!isNaN(date.getTime())) {
+        setBirthYear(String(date.getFullYear()));
+        setBirthMonth(String(date.getMonth() + 1).padStart(2, '0'));
+        setBirthDay(String(date.getDate()).padStart(2, '0'));
+      }
+    } else {
+      setBirthYear('');
+      setBirthMonth('');
+      setBirthDay('');
+    }
+  }, [formData.dateOfBirth]);
+
+  // Format phone number: first 4 digits, then groups of 3
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    if (digits.length === 0) return '';
+    
+    // Take first 4 digits as one group
+    const firstGroup = digits.slice(0, 4);
+    const remaining = digits.slice(4);
+    
+    // Group remaining digits in groups of 3
+    const groups = [firstGroup];
+    for (let i = 0; i < remaining.length; i += 3) {
+      groups.push(remaining.slice(i, i + 3));
+    }
+    
+    return groups.filter(g => g.length > 0).join(' ');
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePhoneChange = (value: string) => {
+    // Remove all non-digit characters and spaces
+    const digits = value.replace(/\D/g, '');
+    // Format and store
+    const formatted = formatPhoneNumber(digits);
+    handleInputChange('phone', formatted);
+  };
+
+  // Get number of days in a month
+  const getDaysInMonth = (year: number, month: number): number => {
+    return new Date(year, month, 0).getDate();
+  };
+
+  // Format date as DD/MM/YYYY
+  const formatDateDisplay = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr + 'T00:00:00');
+    if (isNaN(date.getTime())) return '';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Update dateOfBirth when year, month, or day changes
+  const updateDateOfBirth = (year: string, month: string, day: string) => {
+    if (year && month && day) {
+      const yearNum = parseInt(year);
+      const monthNum = parseInt(month);
+      const dayNum = parseInt(day);
+      const daysInMonth = getDaysInMonth(yearNum, monthNum);
+      
+      // Validate day
+      const validDay = Math.min(dayNum, daysInMonth);
+      const dateStr = `${year}-${month.padStart(2, '0')}-${String(validDay).padStart(2, '0')}`;
+      handleInputChange('dateOfBirth', dateStr);
+    } else {
+      handleInputChange('dateOfBirth', '');
+    }
+  };
+
+  const handleYearChange = (year: string) => {
+    setBirthYear(year);
+    // Adjust day if it's invalid for the new year (e.g., Feb 29 in non-leap year)
+    if (year && birthMonth && birthDay) {
+      const yearNum = parseInt(year);
+      const monthNum = parseInt(birthMonth);
+      const dayNum = parseInt(birthDay);
+      const daysInMonth = getDaysInMonth(yearNum, monthNum);
+      const validDay = Math.min(dayNum, daysInMonth);
+      setBirthDay(String(validDay).padStart(2, '0'));
+      updateDateOfBirth(year, birthMonth, String(validDay).padStart(2, '0'));
+    } else {
+      updateDateOfBirth(year, birthMonth, birthDay);
+    }
+  };
+
+  const handleMonthChange = (month: string) => {
+    setBirthMonth(month);
+    // Adjust day if it's invalid for the new month
+    if (birthYear && birthDay) {
+      const yearNum = parseInt(birthYear);
+      const monthNum = parseInt(month);
+      const dayNum = parseInt(birthDay);
+      const daysInMonth = getDaysInMonth(yearNum, monthNum);
+      const validDay = Math.min(dayNum, daysInMonth);
+      setBirthDay(String(validDay).padStart(2, '0'));
+      updateDateOfBirth(birthYear, month, String(validDay).padStart(2, '0'));
+    } else {
+      updateDateOfBirth(birthYear, month, birthDay);
+    }
+  };
+
+  const handleDayChange = (day: string) => {
+    setBirthDay(day);
+    updateDateOfBirth(birthYear, birthMonth, day);
   };
 
   const handleProfileImageChange = (file: File | null) => {
@@ -113,7 +274,10 @@ const RegisterPage: React.FC = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
+        phone: formData.phone.replace(/\s/g, ''), // Remove spaces before saving
+        region: formData.region || undefined,
+        ward: formData.ward || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
         password: formData.password,
         role: finalRole,
         bio: '',
@@ -166,7 +330,7 @@ const RegisterPage: React.FC = () => {
                     value={formData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     placeholder="First name"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     required
                   />
                 </div>
@@ -181,7 +345,7 @@ const RegisterPage: React.FC = () => {
                     value={formData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     placeholder="Last name"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     required
                   />
                 </div>
@@ -196,7 +360,7 @@ const RegisterPage: React.FC = () => {
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder="Email address"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     required
                   />
                 </div>
@@ -209,12 +373,162 @@ const RegisterPage: React.FC = () => {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
                     placeholder="Phone number"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   />
                 </div>
               </div>
+
+              {/* Place of Birth - Region and Ward Fields (Stacked Vertically) */}
+              <div>
+                <div className="block text-sm font-medium text-gray-700 mb-2">Place of birth</div>
+                <div className="space-y-2">
+                {/* Region Field */}
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <select
+                    value={selectedRegion}
+                    onChange={(e) => {
+                      setSelectedRegion(e.target.value);
+                      handleInputChange('region', e.target.value);
+                      handleInputChange('ward', ''); // Reset ward when region changes
+                    }}
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white"
+                  >
+                    <option value="">Select region</option>
+                    {regions.map((region) => (
+                      <option key={region.value} value={region.value}>
+                        {region.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Ward Field */}
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <select
+                    value={formData.ward}
+                    onChange={(e) => handleInputChange('ward', e.target.value)}
+                    disabled={!selectedRegion}
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select ward</option>
+                    {selectedRegion && wardsByRegion[selectedRegion as keyof typeof wardsByRegion]?.map((ward) => (
+                      <option key={ward} value={ward}>
+                        {ward}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                </div>
+              </div>
+
+              {/* Date of Birth Field */}
+              <div>
+                <div className="block text-sm font-medium text-gray-700 mb-2">Date of birth</div>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" size={20} />
+                  <input
+                    type="text"
+                    readOnly
+                    value={formatDateDisplay(formData.dateOfBirth)}
+                    onClick={() => setIsDatePickerOpen(true)}
+                    placeholder="Click to select date"
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm cursor-pointer bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Date Picker Modal */}
+              <PopupOverlay
+                isOpen={isDatePickerOpen}
+                onClose={() => setIsDatePickerOpen(false)}
+                overlayClassName="bg-black/50"
+              >
+                <div className="bg-white rounded-xl px-6 pt-4 pb-6 max-w-sm w-full mx-auto flex flex-col">
+                  <div className="mb-5">
+                    <h3 className="text-xl font-semibold text-black text-center">Select Date of Birth</h3>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* Day Dropdown */}
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" size={20} />
+                      <select
+                        value={birthDay}
+                        onChange={(e) => handleDayChange(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white"
+                        autoFocus
+                      >
+                        <option value="">Day</option>
+                        {birthYear && birthMonth ? (
+                          Array.from({ length: getDaysInMonth(parseInt(birthYear), parseInt(birthMonth)) }, (_, i) => {
+                            const day = i + 1;
+                            return (
+                              <option key={day} value={String(day).padStart(2, '0')}>
+                                {day}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          Array.from({ length: 31 }, (_, i) => {
+                            const day = i + 1;
+                            return (
+                              <option key={day} value={String(day).padStart(2, '0')}>
+                                {day}
+                              </option>
+                            );
+                          })
+                        )}
+                      </select>
+                    </div>
+                    
+                    {/* Month Dropdown */}
+                    <select
+                      value={birthMonth}
+                      onChange={(e) => handleMonthChange(e.target.value)}
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white"
+                    >
+                      <option value="">Month</option>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const month = i + 1;
+                        const monthName = new Date(2000, month - 1).toLocaleString('default', { month: 'long' });
+                        return (
+                          <option key={month} value={String(month).padStart(2, '0')}>
+                            {monthName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    
+                    {/* Year Dropdown */}
+                    <select
+                      value={birthYear}
+                      onChange={(e) => handleYearChange(e.target.value)}
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white"
+                    >
+                      <option value="">Year</option>
+                      {(() => {
+                        const currentYear = new Date().getFullYear();
+                        const minAge = 13;
+                        const maxAge = 100; // Allow up to 100 years old
+                        const startYear = currentYear - minAge;
+                        const endYear = currentYear - maxAge;
+                        const years = [];
+                        for (let year = startYear; year >= endYear; year--) {
+                          years.push(year);
+                        }
+                        return years.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ));
+                      })()}
+                    </select>
+                  </div>
+                </div>
+              </PopupOverlay>
 
               {/* Register As Section */}
               <div>
@@ -294,7 +608,7 @@ const RegisterPage: React.FC = () => {
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     placeholder="Password"
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     required
                   />
                   <button
@@ -316,7 +630,7 @@ const RegisterPage: React.FC = () => {
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     placeholder="Confirm password"
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     required
                   />
                   <button
