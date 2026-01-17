@@ -491,9 +491,8 @@ const RegisterPage: React.FC = () => {
                       className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white"
                     >
                       <option value="">Month</option>
-                      {Array.from({ length: 12 }, (_, i) => {
+                      {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((monthName, i) => {
                         const month = i + 1;
-                        const monthName = new Date(2000, month - 1).toLocaleString('default', { month: 'long' });
                         return (
                           <option key={month} value={String(month).padStart(2, '0')}>
                             {monthName}
