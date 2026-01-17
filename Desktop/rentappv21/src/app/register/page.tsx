@@ -3,6 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Import User type - need to define it locally since it's not exported
+type User = {
+  id: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  region?: string;
+  ward?: string;
+  dateOfBirth?: string;
+  bio?: string;
+  profileImage?: string;
+  role: 'tenant' | 'landlord' | 'broker' | 'staff' | 'admin';
+  isApproved?: boolean;
+};
 import { Eye, EyeOff, Mail, Lock, User, Phone, ChevronRight, Pencil, MapPin, Calendar } from 'lucide-react';
 import Layout from '@/components/Layout';
 import LoginPopup from '@/components/LoginPopup';
@@ -283,7 +300,7 @@ const RegisterPage: React.FC = () => {
         finalRole = 'tenant'; // Fallback to tenant
       }
 
-      const result = await register({
+      const registerData: Omit<User, 'id'> & { password: string } = {
         name: `${formData.firstName} ${formData.lastName}`,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -296,7 +313,9 @@ const RegisterPage: React.FC = () => {
         role: finalRole,
         bio: '',
         profileImage: formData.profileImage
-      });
+      };
+      
+      const result = await register(registerData);
 
       if (result.success) {
         if (finalRole === 'staff') {
