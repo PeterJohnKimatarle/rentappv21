@@ -191,6 +191,45 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
     return isPropertyInFollowUpAnyUser(property.id);
   });
   
+  // Get staff first name who followed or closed the property
+  const [staffFirstName, setStaffFirstName] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const updateStaffFirstName = () => {
+      // Only get staff name if property is closed or followed
+      const isPropertyClosed = showClosedButton || isClosed;
+      const isPropertyFollowed = showNotesButton || isPinged;
+      
+      if (isPropertyClosed || isPropertyFollowed) {
+        const status = getPropertyStatus(property.id);
+        if (status && status.updatedBy?.name && (status.status === 'closed' || status.status === 'followup')) {
+          // Extract first name from full name
+          const firstName = status.updatedBy.name.split(' ')[0];
+          setStaffFirstName(firstName);
+        } else {
+          setStaffFirstName(null);
+        }
+      } else {
+        setStaffFirstName(null);
+      }
+    };
+    
+    updateStaffFirstName();
+    
+    // Listen for status changes
+    window.addEventListener('propertyStatusChanged', updateStaffFirstName);
+    window.addEventListener('followUpChanged', updateStaffFirstName);
+    window.addEventListener('closedChanged', updateStaffFirstName);
+    
+    return () => {
+      window.removeEventListener('propertyStatusChanged', updateStaffFirstName);
+      window.removeEventListener('followUpChanged', updateStaffFirstName);
+      window.removeEventListener('closedChanged', updateStaffFirstName);
+    };
+  }, [property.id, isClosed, isPinged, showClosedButton, showNotesButton]);
+  
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
@@ -1299,11 +1338,15 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   )}
                   {(showClosedButton || isClosed) ? (
                     <>
-                      <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Closed</span>
+                      <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>
+                        Closed{staffFirstName ? ` [${staffFirstName}]` : ''}
+                      </span>
                     </>
                   ) : (showNotesButton || isPinged) ? (
                     <>
-                      <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Followed</span>
+                      <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>
+                        Followed{staffFirstName ? ` [${staffFirstName}]` : ''}
+                      </span>
                     </>
                   ) : (
                     <>
@@ -1350,9 +1393,13 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                   )}
                   {(showClosedButton || isClosed) ? (
-                    <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Closed</span>
+                    <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>
+                      Closed{staffFirstName ? ` [${staffFirstName}]` : ''}
+                    </span>
                   ) : (showNotesButton || isPinged) ? (
-                    <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Followed</span>
+                    <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>
+                      Followed{staffFirstName ? ` [${staffFirstName}]` : ''}
+                    </span>
                   ) : (
                     <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Default</span>
                   )}
@@ -2222,10 +2269,10 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     // Staff and admin can change status
                     // This will override follow-up status if property is in follow-up
                     if (((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') && userId && user?.name) {
-                    if (isPinged) {
+                      if (isPinged) {
                         removeFromFollowUp(property.id, userId, user.name);
-                    }
-                    if (isClosed) {
+                      }
+                      if (isClosed) {
                         removeFromClosed(property.id, userId, user.name);
                       }
                     }
@@ -2338,8 +2385,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
         </div>
       )}
 
-      {/* Info Modal - Admin Only */}
-      {showInfoModal && user?.role === 'admin' && (
+      {/* Info Modal - Admin and Staff */}
+      {showInfoModal && ((user?.role === 'admin') || (user?.role === 'staff' && user?.isApproved)) && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{
@@ -2396,8 +2443,15 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
             <div className="flex justify-center items-center mb-4">
               <h3 className="text-xl font-semibold text-black">All Amenities</h3>
             </div>
-            <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto mb-4">
-              {(property.amenities || []).map((amenity, index) => (
+            <div 
+              className="grid gap-2 max-h-80 overflow-y-auto mb-4"
+              style={{
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridAutoFlow: 'column',
+                gridTemplateRows: `repeat(${Math.ceil((property.amenities || []).length / 2)}, auto)`
+              }}
+            >
+              {[...(property.amenities || [])].sort().map((amenity, index) => (
                 <span key={index} className="bg-blue-100 text-blue-800 text-base font-medium px-3.5 py-1.5 rounded-full dark:bg-blue-900 dark:text-blue-300">
                   {amenity}
                 </span>

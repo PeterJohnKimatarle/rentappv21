@@ -328,7 +328,7 @@ export default function StaffPortalPage() {
               ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500 text-xl">No follow up properties found.</p>
-                <p className="text-gray-400 text-base mt-1">Properties followed by staff members will appear here.</p>
+                <p className="text-gray-400 text-base mt-1">All properties you follow will appear here.</p>
               </div>
               )}
             </div>
@@ -446,7 +446,7 @@ export default function StaffPortalPage() {
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-500 text-xl">No closed properties found.</p>
-                  <p className="text-gray-400 text-base mt-1">Properties you mark as closed will appear here.</p>
+                  <p className="text-gray-400 text-base mt-1">All properties you close will appear here.</p>
                 </div>
               )}
             </div>

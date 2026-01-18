@@ -9,6 +9,9 @@ interface StoredUser {
   lastName?: string
   email: string
   phone?: string
+  region?: string
+  ward?: string
+  dateOfBirth?: string
   bio?: string
   profileImage?: string
   role: 'tenant' | 'landlord' | 'broker' | 'staff' | 'admin'

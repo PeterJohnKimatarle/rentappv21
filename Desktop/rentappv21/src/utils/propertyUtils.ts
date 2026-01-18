@@ -696,31 +696,19 @@ export const getFollowUpProperties = (): DisplayProperty[] => {
 };
 
 // Get follow-up properties by a specific staff member
-// Returns properties marked as follow-up by this staff member OR properties in follow-up status with notes
+// Returns only properties marked as follow-up by this staff member
 export const getFollowUpPropertiesByStaff = (staffId: string): DisplayProperty[] => {
   try {
     const statusMap = getPropertyStatusMap();
     const allProperties = getAllProperties();
     
-    // Filter properties that:
-    // 1. Are marked as follow-up by this staff member, OR
-    // 2. Are in follow-up status AND have notes (contributed to notes)
+    // Filter properties that are marked as follow-up by this staff member
     return allProperties.filter(property => {
       const status = statusMap[property.id];
       if (!status || status.status !== 'followup') return false;
       
-      // Check if marked as follow-up by this staff member
-      if (status.updatedBy?.id === staffId) {
-        return true;
-      }
-      
-      // Check if property has notes (staff contributed to notes)
-      const notes = getStaffNotes(property.id);
-      if (notes && notes.trim().length > 0) {
-        return true;
-      }
-      
-    return false;
+      // Only return properties marked as follow-up by this staff member
+      return status.updatedBy?.id === staffId;
     });
   } catch (error) {
     console.error('Error getting follow-up properties by staff:', error);

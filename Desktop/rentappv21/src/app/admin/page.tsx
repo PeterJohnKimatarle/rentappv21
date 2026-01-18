@@ -9,7 +9,7 @@ import { ShieldCheck, Users, Settings, UserCheck, Check, Menu, X, ChevronRight, 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getAllProperties, getClosedProperties, getFollowUpProperties, DisplayProperty, getUserNotes, saveUserNotes } from '@/utils/propertyUtils';
+import { getAllProperties, getClosedProperties, getFollowUpProperties, getClosedPropertiesByStaff, getFollowUpPropertiesByStaff, DisplayProperty, getUserNotes, saveUserNotes } from '@/utils/propertyUtils';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { isStaffEnrollmentEnabled, toggleStaffEnrollment } from '@/utils/adminSettings';
 import { getActiveSessions, getOnlineUserCount } from '@/utils/sessionTracking';
@@ -29,7 +29,7 @@ interface User {
   bio?: string;
 }
 
-type ViewType = 'staff' | 'users' | 'guests' | 'settings' | 'closed' | 'followup';
+type ViewType = 'staff' | 'users' | 'guests' | 'settings' | 'closed' | 'followup' | 'myClosed' | 'myFollowup';
 
 // Delete Confirmation Popup Component
 function DeleteConfirmPopup({ 
@@ -160,6 +160,8 @@ export default function AdminPage() {
   const [selectedProfileUser, setSelectedProfileUser] = useState<User | null>(null);
   const [closedProperties, setClosedProperties] = useState<DisplayProperty[]>([]);
   const [followUpProperties, setFollowUpProperties] = useState<DisplayProperty[]>([]);
+  const [myClosedProperties, setMyClosedProperties] = useState<DisplayProperty[]>([]);
+  const [myFollowUpProperties, setMyFollowUpProperties] = useState<DisplayProperty[]>([]);
   const [staffEnrollmentEnabled, setStaffEnrollmentEnabled] = useState(false);
   const [guestUsers, setGuestUsers] = useState<Array<{ id: string; firstVisit: number; lastVisit: number; isActive: boolean }>>([]);
   const [showUserNotesModal, setShowUserNotesModal] = useState(false);
@@ -279,9 +281,11 @@ export default function AdminPage() {
       loadAllUsers();
       loadClosedProperties();
       loadFollowUpProperties();
+      loadMyClosedProperties();
+      loadMyFollowUpProperties();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [isAdmin, user?.id]);
 
   useEffect(() => {
     // Listen for changes to closed and follow-up properties
@@ -289,12 +293,16 @@ export default function AdminPage() {
       const handleStatusChange = () => {
         loadClosedProperties();
         loadFollowUpProperties();
+        loadMyClosedProperties();
+        loadMyFollowUpProperties();
       };
       const handleClosedChange = () => {
         loadClosedProperties();
+        loadMyClosedProperties();
       };
       const handleFollowUpChange = () => {
         loadFollowUpProperties();
+        loadMyFollowUpProperties();
       };
 
       window.addEventListener('propertyStatusChanged', handleStatusChange);
@@ -307,7 +315,7 @@ export default function AdminPage() {
         window.removeEventListener('followUpChanged', handleFollowUpChange);
       };
     }
-  }, [isAdmin]);
+  }, [isAdmin, user?.id]);
 
   // Load guest users and update periodically
   useEffect(() => {
@@ -390,6 +398,20 @@ export default function AdminPage() {
       // (getFollowUpProperties already excludes closed properties)
       const followUpPropertiesList = getFollowUpProperties();
       setFollowUpProperties(followUpPropertiesList);
+    }
+  };
+
+  const loadMyClosedProperties = () => {
+    if (typeof window !== 'undefined' && user?.id) {
+      const myClosedList = getClosedPropertiesByStaff(user.id);
+      setMyClosedProperties(myClosedList);
+    }
+  };
+
+  const loadMyFollowUpProperties = () => {
+    if (typeof window !== 'undefined' && user?.id) {
+      const myFollowUpList = getFollowUpPropertiesByStaff(user.id);
+      setMyFollowUpProperties(myFollowUpList);
     }
   };
 
@@ -639,6 +661,32 @@ export default function AdminPage() {
               >
                 <Clock size={20} />
                 All Follow-ups
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('myClosed');
+                }}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left ${
+                  currentView === 'myClosed'
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Archive size={20} />
+                My Closed
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('myFollowup');
+                }}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left ${
+                  currentView === 'myFollowup'
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Clock size={20} />
+                My Follow-ups
               </button>
               <button
                 onClick={() => {
@@ -1189,6 +1237,64 @@ export default function AdminPage() {
         </div>
         )}
 
+        {/* My Closed Properties View */}
+        {currentView === 'myClosed' && (
+        <div className="w-full max-w-6xl mx-auto px-2 sm:px-2 lg:px-4 pt-1 sm:pt-2 lg:pt-3">
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <Archive size={24} className="text-blue-500" />
+            <h3 className="text-xl font-semibold text-gray-900">My Closed Properties</h3>
+            <p className="text-lg font-medium text-gray-900">[{myClosedProperties.length}]</p>
+          </div>
+          
+          <div className="space-y-2 sm:space-y-3 lg:space-y-6">
+            {myClosedProperties.length > 0 ? (
+              myClosedProperties.map((property) => (
+                <PropertyCard 
+                  key={property.id} 
+                  property={property} 
+                  showClosedButton={true}
+                  showBookmarkConfirmation={false}
+                />
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-xl">No closed properties found.</p>
+                <p className="text-gray-400 text-base mt-1">All properties you close will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+        )}
+
+        {/* My Follow-up Properties View */}
+        {currentView === 'myFollowup' && (
+        <div className="w-full max-w-6xl mx-auto px-2 sm:px-2 lg:px-4 pt-1 sm:pt-2 lg:pt-3">
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <Clock size={24} className="text-blue-500" />
+            <h3 className="text-xl font-semibold text-gray-900">My Follow-up Properties</h3>
+            <p className="text-lg font-medium text-gray-900">[{myFollowUpProperties.length}]</p>
+          </div>
+          
+          <div className="space-y-2 sm:space-y-3 lg:space-y-6">
+            {myFollowUpProperties.length > 0 ? (
+              myFollowUpProperties.map((property) => (
+                <PropertyCard 
+                  key={property.id} 
+                  property={property} 
+                  showNotesButton={true}
+                  showBookmarkConfirmation={false}
+                />
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-xl">No follow-up properties found.</p>
+                <p className="text-gray-400 text-base mt-1">All properties you follow will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+        )}
+
         {/* Settings View */}
         {currentView === 'settings' && (
         <div>
@@ -1317,6 +1423,34 @@ export default function AdminPage() {
               >
                 <Clock size={20} />
                 All Follow-ups
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('myClosed');
+                  setIsMenuOpen(false);
+                }}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left mt-2 ${
+                  currentView === 'myClosed'
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Archive size={20} />
+                My Closed
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('myFollowup');
+                  setIsMenuOpen(false);
+                }}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left mt-2 ${
+                  currentView === 'myFollowup'
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Clock size={20} />
+                My Follow-ups
               </button>
               <button
                 onClick={() => {

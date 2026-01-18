@@ -1149,7 +1149,14 @@ export default function ListPropertyPage() {
 
          {/* Amenities Card */}
          <div className="bg-blue-500 rounded-lg p-2 sm:p-3 mb-2 max-w-sm mx-auto">
-           <div className="grid grid-cols-2 gap-2">
+           <div 
+             className="grid gap-2"
+             style={{
+               gridTemplateColumns: 'repeat(2, 1fr)',
+               gridAutoFlow: 'column',
+               gridTemplateRows: `repeat(${Math.ceil(commonAmenities.length / 2)}, auto)`
+             }}
+           >
              {commonAmenities.map((amenity) => (
                <label
                  key={amenity}
@@ -1285,7 +1292,7 @@ export default function ListPropertyPage() {
                  <div className="text-red-500 text-6xl mb-4">⚠️</div>
                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Technical Issue</h4>
                 <p className="text-gray-600 mb-6 leading-relaxed">
-                  Sorry, it seems we are having a technical issue. Please Call/WA on{' '}
+                  Sorry, it seems we are having a technical issue. Please contact{' '}
                    <a 
                      href="tel:+255755123500" 
                      className="text-blue-600 hover:text-blue-800 underline font-medium"
@@ -1305,7 +1312,7 @@ export default function ListPropertyPage() {
                <div className="bg-gray-50 px-6 py-4 flex justify-center">
                  <button
                    onClick={() => setShowError(false)}
-                   className="bg-red-500 hover:bg-red-600 text-white px-8 py-2 rounded-lg font-medium transition-colors"
+                   className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-8 py-2 rounded-lg font-medium transition-colors"
                  >
                    Ok, I got it
                  </button>

@@ -10,6 +10,9 @@ interface User {
   lastName?: string;
   email: string;
   phone?: string;
+  region?: string;
+  ward?: string;
+  dateOfBirth?: string;
   bio?: string;
   profileImage?: string;
   role: 'tenant' | 'landlord' | 'broker' | 'staff' | 'admin';
@@ -243,6 +246,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastName: lastName || undefined,
         email: userData.email,
         phone: userData.phone,
+        region: userData.region,
+        ward: userData.ward,
+        dateOfBirth: userData.dateOfBirth,
         bio: userData.bio,
         profileImage,
         role: userData.role,

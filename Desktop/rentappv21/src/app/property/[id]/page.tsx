@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon, Info } from 'lucide-react';
-import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getStaffNotes, saveStaffNotes, getUserNotes, saveUserNotes, getPrivateNotes, savePrivateNotes } from '@/utils/propertyUtils';
+import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getPropertyStatus, getStaffNotes, saveStaffNotes, getUserNotes, saveUserNotes, getPrivateNotes, savePrivateNotes } from '@/utils/propertyUtils';
 import { parsePropertyType, getPropertyTypeDisplayLabel } from '@/utils/propertyTypes';
 import ImageLightbox from '@/components/ImageLightbox';
 import SharePopup from '@/components/SharePopup';
@@ -29,6 +29,7 @@ export default function PropertyDetailsPage() {
   const [bookingModalType, setBookingModalType] = useState<'book' | 'status'>('book');
   const [isPinged, setIsPinged] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
+  const [staffFirstName, setStaffFirstName] = useState<string | null>(null);
   const [showThreeDotsModal, setShowThreeDotsModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [wasOpenedFromNotesModal, setWasOpenedFromNotesModal] = useState(false);
@@ -340,6 +341,40 @@ export default function PropertyDetailsPage() {
       };
     }
   }, [property?.id, isPinged]);
+
+  // Get staff first name who followed or closed the property
+  useEffect(() => {
+    if (typeof window === 'undefined' || !property) return;
+    
+    const updateStaffFirstName = () => {
+      // Only get staff name if property is closed or followed
+      if (isClosed || isPinged) {
+        const status = getPropertyStatus(property.id);
+        if (status && status.updatedBy?.name && (status.status === 'closed' || status.status === 'followup')) {
+          // Extract first name from full name
+          const firstName = status.updatedBy.name.split(' ')[0];
+          setStaffFirstName(firstName);
+        } else {
+          setStaffFirstName(null);
+        }
+      } else {
+        setStaffFirstName(null);
+      }
+    };
+    
+    updateStaffFirstName();
+    
+    // Listen for status changes
+    window.addEventListener('propertyStatusChanged', updateStaffFirstName);
+    window.addEventListener('followUpChanged', updateStaffFirstName);
+    window.addEventListener('closedChanged', updateStaffFirstName);
+    
+    return () => {
+      window.removeEventListener('propertyStatusChanged', updateStaffFirstName);
+      window.removeEventListener('followUpChanged', updateStaffFirstName);
+      window.removeEventListener('closedChanged', updateStaffFirstName);
+    };
+  }, [property?.id, isClosed, isPinged]);
 
   // Check if property has notes
   useEffect(() => {
@@ -890,11 +925,11 @@ export default function PropertyDetailsPage() {
                           )}
                           {isClosed ? (
                             <>
-                              <span className="text-sm xl:text-base font-medium">Closed</span>
+                              <span className="text-sm xl:text-base font-medium">Closed{staffFirstName ? ` [${staffFirstName}]` : ''}</span>
                             </>
                           ) : isPinged ? (
                             <>
-                              <span className="text-sm xl:text-base font-medium">Followed</span>
+                              <span className="text-sm xl:text-base font-medium">Followed{staffFirstName ? ` [${staffFirstName}]` : ''}</span>
                             </>
                           ) : (
                             <>
@@ -1194,11 +1229,11 @@ export default function PropertyDetailsPage() {
                       )}
                       {isClosed ? (
                         <>
-                          <span className="text-base xl:text-lg font-medium">Closed</span>
+                          <span className="text-base xl:text-lg font-medium">Closed{staffFirstName ? ` [${staffFirstName}]` : ''}</span>
                         </>
                       ) : isPinged ? (
                         <>
-                          <span className="text-base xl:text-lg font-medium">Followed</span>
+                          <span className="text-base xl:text-lg font-medium">Followed{staffFirstName ? ` [${staffFirstName}]` : ''}</span>
                         </>
                       ) : (
                         <>
@@ -2104,7 +2139,7 @@ export default function PropertyDetailsPage() {
       />
 
       {/* Info Modal - Admin Only */}
-      {showInfoModal && user?.role === 'admin' && (
+      {showInfoModal && ((user?.role === 'admin') || (user?.role === 'staff' && user?.isApproved)) && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{
@@ -2159,8 +2194,15 @@ export default function PropertyDetailsPage() {
             <div className="flex justify-center items-center mb-4">
               <h3 className="text-xl font-semibold text-black">All Amenities</h3>
             </div>
-            <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto mb-4">
-              {(property.amenities || []).map((amenity, index) => (
+            <div 
+              className="grid gap-2 max-h-80 overflow-y-auto mb-4"
+              style={{
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridAutoFlow: 'column',
+                gridTemplateRows: `repeat(${Math.ceil((property.amenities || []).length / 2)}, auto)`
+              }}
+            >
+              {[...(property.amenities || [])].sort().map((amenity, index) => (
                 <span key={index} className="bg-blue-100 text-blue-800 text-base font-medium px-3.5 py-1.5 rounded-full dark:bg-blue-900 dark:text-blue-300">
                   {amenity}
                 </span>
