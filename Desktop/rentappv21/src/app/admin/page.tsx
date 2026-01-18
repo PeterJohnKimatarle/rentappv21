@@ -1201,7 +1201,7 @@ export default function AdminPage() {
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500 text-xl">No closed properties found.</p>
-                <p className="text-gray-400 text-base mt-1">Check back later.</p>
+                <p className="text-gray-400 text-base mt-1">All closed properties will appear here</p>
               </div>
             )}
           </div>
@@ -1230,7 +1230,7 @@ export default function AdminPage() {
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500 text-xl">No follow-up properties found.</p>
-                <p className="text-gray-400 text-base mt-1">Properties followed by staff members will appear here.</p>
+                <p className="text-gray-400 text-base mt-1">All followed-up properties will appear here</p>
               </div>
             )}
           </div>
@@ -1353,7 +1353,7 @@ export default function AdminPage() {
             ref={menuRef}
             className="xl:hidden fixed top-[58%] -translate-y-[115px] right-24 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 min-w-[200px] overflow-hidden"
           >
-            <div className="p-2">
+            <div className="p-2 max-h-[55vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <button
                 onClick={() => {
                   setCurrentView('staff');
@@ -1398,34 +1398,6 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={() => {
-                  setCurrentView('closed');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left mt-2 ${
-                  currentView === 'closed'
-                    ? 'bg-purple-500 text-white hover:bg-purple-600'
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Archive size={20} />
-                All Closed
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentView('followup');
-                  setIsMenuOpen(false);
-                }}
-                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left mt-2 ${
-                  currentView === 'followup'
-                    ? 'bg-purple-500 text-white hover:bg-purple-600'
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Clock size={20} />
-                All Follow-ups
-              </button>
-              <button
-                onClick={() => {
                   setCurrentView('myClosed');
                   setIsMenuOpen(false);
                 }}
@@ -1451,6 +1423,34 @@ export default function AdminPage() {
               >
                 <Clock size={20} />
                 My Follow-ups
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('closed');
+                  setIsMenuOpen(false);
+                }}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left mt-2 ${
+                  currentView === 'closed'
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Archive size={20} />
+                All Closed
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('followup');
+                  setIsMenuOpen(false);
+                }}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-3 text-left mt-2 ${
+                  currentView === 'followup'
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Clock size={20} />
+                All Follow-ups
               </button>
               <button
                 onClick={() => {

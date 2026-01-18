@@ -3,7 +3,7 @@
 import Layout from '@/components/Layout';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Image, Info, PlusCircle, ChevronRight } from 'lucide-react';
+import { Image, Info, PlusCircle, ChevronRight, AlertCircle } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { useAuth } from '@/contexts/AuthContext';
 import { invalidatePropertiesCache } from '@/utils/propertyUtils';
@@ -119,6 +119,8 @@ export default function ListPropertyPage() {
   const [activeTab, setActiveTab] = useState<'basic' | 'details'>('basic');
   const [rentalRateValue, setRentalRateValue] = useState('');
   const [areaUnitValue, setAreaUnitValue] = useState('area-sqm'); // Default to sqm
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [isRentalRateOpen, setIsRentalRateOpen] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -148,6 +150,7 @@ export default function ListPropertyPage() {
       setRentalRateValue('');
     }
   }, [formData.pricingUnit]);
+
 
   // Sync areaUnitValue with formData.areaUnit
   useEffect(() => {
@@ -439,9 +442,18 @@ export default function ListPropertyPage() {
     }
 
     if (!formData.pricingUnit) {
-      alert('Please select a rental rate (Price/month, Price/night, etc.).');
+      setHasAttemptedSubmit(true);
+      // Trigger validation on the select element
+      const selectElement = document.getElementById('rental-rate-select') as HTMLSelectElement;
+      if (selectElement) {
+        selectElement.focus();
+        selectElement.reportValidity();
+      }
       return;
     }
+    
+    // Clear validation state when value is present
+    setHasAttemptedSubmit(false);
 
     if (!formData.price) {
       alert('Enter price.');
@@ -459,7 +471,7 @@ export default function ListPropertyPage() {
     }
 
     if (!formData.mainImage) {
-      alert('Please add a main image for your property.');
+      alert('Please add main image of your property');
       return;
     }
 
@@ -540,7 +552,7 @@ export default function ListPropertyPage() {
   };
 
   // Prevent body scroll when popup is open
-  usePreventScroll(showWardPopup || showMainImagePopup || showOtherImagesPopup || showSuccess || showError || showDeleteAllConfirm || showRemoveAllInfo);
+  usePreventScroll(showWardPopup || showMainImagePopup || showOtherImagesPopup || showSuccess || showError || showDeleteAllConfirm || showRemoveAllInfo || isRentalRateOpen);
   return (
     <Layout>
       <div
@@ -930,7 +942,7 @@ export default function ListPropertyPage() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-base font-bold text-white mb-2 text-center">
-                    Price{rentalRateValue ? '/' + rentalRateValue.replace('price-', '').charAt(0).toUpperCase() + rentalRateValue.replace('price-', '').slice(1) : ''} (Tsh)
+                    Price{rentalRateValue ? '/' + rentalRateValue.replace('price-', '') : ''} (Tsh)
                   </label>
                   <input
                     type="text"
@@ -964,45 +976,39 @@ export default function ListPropertyPage() {
                     <option value="flexible">Flexible</option>
                   </select>
                 </div>
+              </div>
 
-                {/* Pricing Details Dropdown - DO NOT CHANGE: flex justify-end needed for button alignment */}
-                <div className="col-span-2 flex justify-end">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 w-fit text-sm font-medium text-white cursor-pointer bg-transparent border-none outline-none ml-auto" // DO NOT CHANGE: w-fit for content sizing, ml-auto for right alignment
-                      style={{ backgroundColor: 'transparent' }}
-                      onClick={(e) => {
-                        const select = e.currentTarget.nextElementSibling as HTMLSelectElement;
-                        if (select) select.click();
-                      }}
-                    >
-                      <span>Rental rate</span>
-                      <ChevronRight
-                        size={16}
-                        className="text-white"
-                      />
-                    </button>
-                    <select
-                      value={rentalRateValue}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setRentalRateValue(value);
-                        const pricingUnit = value ? value.replace('price-', '') as 'month' | 'night' | 'day' | 'hour' : '';
-                        handleInputChange('pricingUnit' as keyof typeof formData, pricingUnit);
-                      }}
-                      required
-                      className="absolute inset-0 w-fit h-full opacity-0 cursor-pointer" // DO NOT CHANGE: w-fit to match button content width
-                    >
-                      <option value="" className="text-gray-800">---</option>
-                      <option value="price-month" className="text-gray-800">Price/month</option>
-                      <option value="price-night" className="text-gray-800">Price/night</option>
-                      <option value="price-hour" className="text-gray-800">Price/hour</option>
-                      <option value="price-day" className="text-gray-800">Price/day</option>
-                    </select>
-                  </div>
-
-                </div>
+              {/* Rental Rate - Button to Open Popup */}
+              <div className="mt-3 relative">
+                <select
+                  id="rental-rate-select"
+                  className="absolute top-0 left-0 w-full h-10 opacity-0 pointer-events-none z-10"
+                  value={formData.pricingUnit || ''}
+                  onChange={() => {}}
+                  required
+                >
+                  <option value="">---</option>
+                  <option value="month">Price/month</option>
+                  <option value="night">Price/night</option>
+                  <option value="hour">Price/hour</option>
+                  <option value="day">Price/day</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setIsRentalRateOpen(true)}
+                  className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 transition-all flex items-center justify-center bg-gray-100 text-gray-800 relative z-0"
+                >
+                  <span className="flex-1">
+                    {rentalRateValue 
+                      ? `Rental rate (${rentalRateValue === 'price-month' ? 'Price/month' :
+                          rentalRateValue === 'price-night' ? 'Price/night' :
+                          rentalRateValue === 'price-hour' ? 'Price/hour' :
+                          rentalRateValue === 'price-day' ? 'Price/day' : ''})`
+                      : 'Rental rate'
+                    }
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
 
@@ -1808,6 +1814,122 @@ export default function ListPropertyPage() {
                     className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
                   >
                     No
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rental Rate Popup */}
+          {isRentalRateOpen && (
+            <div 
+              className="fixed inset-0 flex items-center justify-center z-50 p-4"
+              style={{ 
+                touchAction: 'none', 
+                minHeight: '100vh', 
+                height: '100%', 
+                backgroundColor: 'rgba(0, 0, 0, 0.5)'
+              }}
+              onClick={() => setIsRentalRateOpen(false)}
+            >
+              <div 
+                className="rounded-xl w-full mx-4 shadow-2xl overflow-hidden bg-white max-w-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRentalRateValue('');
+                      handleInputChange('pricingUnit' as keyof typeof formData, '');
+                      setIsRentalRateOpen(false);
+                    }}
+                    className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+                  >
+                    <span className="px-4 flex items-center justify-between">
+                      <span>---</span>
+                      <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                        {!rentalRateValue && (
+                          <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const value = 'price-month';
+                      setRentalRateValue(value);
+                      handleInputChange('pricingUnit' as keyof typeof formData, 'month');
+                      setIsRentalRateOpen(false);
+                    }}
+                    className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+                  >
+                    <span className="px-4 flex items-center justify-between">
+                      <span>Price/month</span>
+                      <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                        {rentalRateValue === 'price-month' && (
+                          <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const value = 'price-night';
+                      setRentalRateValue(value);
+                      handleInputChange('pricingUnit' as keyof typeof formData, 'night');
+                      setIsRentalRateOpen(false);
+                    }}
+                    className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+                  >
+                    <span className="px-4 flex items-center justify-between">
+                      <span>Price/night</span>
+                      <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                        {rentalRateValue === 'price-night' && (
+                          <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const value = 'price-hour';
+                      setRentalRateValue(value);
+                      handleInputChange('pricingUnit' as keyof typeof formData, 'hour');
+                      setIsRentalRateOpen(false);
+                    }}
+                    className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+                  >
+                    <span className="px-4 flex items-center justify-between">
+                      <span>Price/hour</span>
+                      <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                        {rentalRateValue === 'price-hour' && (
+                          <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const value = 'price-day';
+                      setRentalRateValue(value);
+                      handleInputChange('pricingUnit' as keyof typeof formData, 'day');
+                      setIsRentalRateOpen(false);
+                    }}
+                    className="w-full py-3 text-lg transition-colors text-left bg-white text-gray-800 hover:bg-gray-100"
+                  >
+                    <span className="px-4 flex items-center justify-between">
+                      <span>Price/day</span>
+                      <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                        {rentalRateValue === 'price-day' && (
+                          <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                        )}
+                      </span>
+                    </span>
                   </button>
                 </div>
               </div>
