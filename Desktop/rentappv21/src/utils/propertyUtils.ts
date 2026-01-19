@@ -917,6 +917,33 @@ export const savePrivateNotes = (propertyId: string, userId: string, notes: stri
       lastEdited: Date.now()
     };
     localStorage.setItem(key, JSON.stringify(data));
+    
+    // Update the property's updatedAt field when notes are edited
+    try {
+      const existingProperties: PropertyFormData[] = JSON.parse(
+        localStorage.getItem('rentapp_properties') || '[]'
+      );
+      
+      const propertyIndex = existingProperties.findIndex(p => p.id === propertyId);
+      
+      if (propertyIndex !== -1) {
+        const existingProperty = existingProperties[propertyIndex];
+        // Only update if the user owns the property
+        if (existingProperty.ownerId === userId) {
+          existingProperties[propertyIndex] = {
+            ...existingProperty,
+            updatedAt: new Date().toISOString()
+          };
+          localStorage.setItem('rentapp_properties', JSON.stringify(existingProperties));
+          // Invalidate cache
+          invalidatePropertiesCache();
+        }
+      }
+    } catch (propertyError) {
+      console.error('Error updating property updatedAt when saving notes:', propertyError);
+      // Continue even if property update fails - notes are still saved
+    }
+    
     // Dispatch event to notify other components with propertyId for tracking
     window.dispatchEvent(new CustomEvent('privateNotesChanged', { detail: { propertyId, userId } }));
     return true;
