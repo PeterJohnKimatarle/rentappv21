@@ -327,7 +327,7 @@ export default function StaffPortalPage() {
                   ))
               ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-xl">No follow up properties found.</p>
+                <p className="text-gray-500 text-xl">No follow up properties.</p>
                 <p className="text-gray-400 text-base mt-1">All properties you follow will appear here.</p>
               </div>
               )}
@@ -445,7 +445,7 @@ export default function StaffPortalPage() {
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 text-xl">No closed properties found.</p>
+                  <p className="text-gray-500 text-xl">No closed properties.</p>
                   <p className="text-gray-400 text-base mt-1">All properties you close will appear here.</p>
                 </div>
               )}
@@ -567,7 +567,7 @@ export default function StaffPortalPage() {
 
             {filteredUsers.length === 0 ? (
               <p className="text-gray-600 text-center py-8">
-                {userSearchFilters ? 'No users match your search criteria.' : 'No users found.'}
+                {userSearchFilters ? 'No users match your search criteria.' : 'No users.'}
               </p>
             ) : (
               <div className="space-y-4">

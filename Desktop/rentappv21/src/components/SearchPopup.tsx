@@ -608,7 +608,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
     >
       <div
         ref={modalContainerRef}
-        className={`rounded-xl max-w-xs w-full px-3 pt-2 pb-2 shadow-lg flex flex-col overflow-hidden`}
+        className={`rounded-xl max-w-xs w-full px-4 pt-2 pb-2 shadow-lg flex flex-col overflow-hidden`}
          style={{
            backgroundColor: '#0071c2',
            pointerEvents: 'auto',
@@ -637,12 +637,14 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
 
         {/* Search Form - Stacked Vertically with Scroll when needed */}
         <div 
-          className={`space-y-3 ${isUserMode ? 'mb-5' : 'mb-3'} overflow-x-hidden overflow-y-auto flex-1 min-h-0 hide-scrollbar`}
+          className={`space-y-3 ${isUserMode ? 'mb-5' : 'mb-3'} overflow-y-auto flex-1 min-h-0 hide-scrollbar`}
           style={{ 
             overflowX: 'hidden',
             overflowY: 'auto',
             scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
+            msOverflowStyle: 'none',
+            paddingLeft: '0.125rem',
+            paddingRight: '0.125rem'
           }}
         >
           {isUserMode ? (
@@ -694,14 +696,15 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
             /* Property Search Fields */
             <>
               {/* Property Type */}
-              <div className="text-center">
+              <div className="text-center w-full">
             <label className="block text-base text-white mb-2">
               Property Type
             </label>
             <select
-              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
               style={{ 
-                color: '#111827'
+                color: '#111827',
+                boxSizing: 'border-box'
               }}
               value={propertyType}
               onChange={(e) => setPropertyType(e.target.value)}
@@ -716,16 +719,17 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
           </div>
 
           {/* Profile/Sub-type - Always visible, disabled when no property type selected */}
-          <div className="text-center">
+          <div className="text-center w-full">
             <label className="block text-base text-white mb-2">
               Profile
             </label>
               {propertyType ? (
                 hasSubCategories(propertyType) ? (
                   <select
-                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100"
+                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 max-w-full"
                     style={{
-                      color: '#111827'
+                      color: '#111827',
+                      boxSizing: 'border-box'
                     }}
                     value={selectedProfile}
                     onChange={(e) => setSelectedProfile(e.target.value)}
@@ -773,15 +777,16 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
 
           {/* Collapsible Content - Area Filters */}
           {showAreaDetails && (
-            <div className="min-w-0">
-              <div className="grid grid-cols-2 gap-2 mt-3 mb-2 min-w-0">
+            <div className="min-w-0 w-full">
+              <div className="grid grid-cols-2 gap-2 mt-3 mb-2 w-full">
                 <div>
                   <label className="block text-base text-white mb-2 text-center">
                     Min{areaUnitValue ? (areaUnitValue.replace('area-', '') === 'acre' ? ' (Acres)' : ' (sqm)') : ' (sqm)'}
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
+                    style={{ boxSizing: 'border-box' }}
                     placeholder="---"
                     value={minArea}
                     onChange={(e) => {
@@ -799,7 +804,8 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                    className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
+                    style={{ boxSizing: 'border-box' }}
                     placeholder="---"
                     value={maxArea}
                     onChange={(e) => {
@@ -850,12 +856,13 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
           )}
 
           {/* Status - Full Width */}
-          <div>
+          <div className="w-full">
             <label className="block text-base text-white mb-2 text-center">
               Status
             </label>
             <select
-              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
+              style={{ boxSizing: 'border-box' }}
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
@@ -866,13 +873,14 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
           </div>
 
           {/* Region and Ward - Facing each other */}
-          <div className="flex justify-between items-end gap-4">
-            <div className="flex-1">
+          <div className="flex justify-between items-end gap-4 w-full">
+            <div className="flex-1 min-w-0">
               <label className="block text-base text-white mb-2 text-center">
                 Region
               </label>
             <select
-              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
+              style={{ boxSizing: 'border-box' }}
               value={selectedRegion}
               onChange={(e) => {
                 setSelectedRegion(e.target.value);
@@ -912,13 +920,14 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
               <option value="other">Other</option>
             </select>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label className="block text-base text-white mb-2 text-center">
                 Ward
               </label>
             {selectedRegion ? (
               <select
-                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
+                style={{ boxSizing: 'border-box' }}
                 value={selectedWard}
                 onChange={(e) => {
                   if (e.target.value === 'other') {
@@ -946,14 +955,15 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
           </div>
 
           {/* Price Range - Min and Max facing each other */}
-          <div className="flex justify-between items-end gap-4">
-            <div className="flex-1">
+          <div className="flex justify-between items-end gap-4 w-full">
+            <div className="flex-1 min-w-0">
               <label className="block text-base text-white mb-2 text-center">
                 Min Price
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
+                style={{ boxSizing: 'border-box' }}
                 placeholder="---"
                 value={minPrice}
                 onChange={(e) => {
@@ -965,13 +975,14 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
                 }}
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label className="block text-base text-white mb-2 text-center">
                 Max Price
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900"
+                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 bg-gray-100 text-gray-900 max-w-full"
+                style={{ boxSizing: 'border-box' }}
                 placeholder="---"
                 value={maxPrice}
                 onChange={(e) => {
@@ -988,23 +999,23 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
           )}
         </div>
 
-        <div className="w-full mb-1 space-y-3 flex-shrink-0">
+        <div className="w-full mb-1 space-y-3 flex-shrink-0 px-1">
           <button
             onClick={handleSearch}
             className="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg font-semibold transition-colors text-center"
           >
             Search
           </button>
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center w-full">
             <button
               onClick={handleClearFilters}
-              className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors text-center"
+              className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors text-center min-w-0"
             >
               Clear
             </button>
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors text-center"
+              className="flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors text-center min-w-0"
               style={{ backgroundColor: 'rgba(239, 68, 68, 0.8)' }}
               onMouseEnter={(e: React.MouseEvent) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(239, 68, 68, 1)'}
               onMouseLeave={(e: React.MouseEvent) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(239, 68, 68, 0.8)'}

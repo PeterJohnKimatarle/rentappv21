@@ -95,7 +95,7 @@ export default function BookmarksPage() {
             <div className="text-center py-8">
               <p className="text-gray-500 text-xl">
                 {bookmarkedProperties.length === 0 && !hasActiveFilters
-                  ? 'No bookmarked properties yet.'
+                  ? 'No bookmarked properties.'
                   : 'No bookmarks match your filters.'}
               </p>
               <p className="text-gray-400 text-base mt-1">

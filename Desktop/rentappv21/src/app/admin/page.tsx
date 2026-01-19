@@ -741,7 +741,7 @@ export default function AdminPage() {
 
           {filteredStaff.length === 0 ? (
             <p className="text-gray-600 text-center py-8">
-              {staffSearchFilters ? 'No staff members match your search criteria.' : 'No staff members found.'}
+              {staffSearchFilters ? 'No staff members match your search criteria.' : 'No staff members.'}
             </p>
           ) : (
             <div className="space-y-4">
@@ -971,7 +971,7 @@ export default function AdminPage() {
 
           {filteredUsers.length === 0 ? (
             <p className="text-gray-600 text-center py-8">
-              {userSearchFilters ? 'No users match your search criteria.' : 'No users found.'}
+              {userSearchFilters ? 'No users match your search criteria.' : 'No users.'}
             </p>
           ) : (
             <div className="space-y-4">
@@ -1151,7 +1151,7 @@ export default function AdminPage() {
           </div>
 
           {guestUsers.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No guest users found.</p>
+            <p className="text-gray-600 text-center py-8">No guest users.</p>
           ) : (
             <div className="space-y-3">
               {guestUsers.map((guest, index) => (
@@ -1200,7 +1200,7 @@ export default function AdminPage() {
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-xl">No closed properties found.</p>
+                <p className="text-gray-500 text-xl">No closed properties.</p>
                 <p className="text-gray-400 text-base mt-1">All closed properties will appear here</p>
               </div>
             )}
@@ -1229,7 +1229,7 @@ export default function AdminPage() {
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-xl">No follow-up properties found.</p>
+                <p className="text-gray-500 text-xl">No follow-up properties.</p>
                 <p className="text-gray-400 text-base mt-1">All followed-up properties will appear here</p>
               </div>
             )}
@@ -1258,7 +1258,7 @@ export default function AdminPage() {
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-xl">No closed properties found.</p>
+                <p className="text-gray-500 text-xl">No closed properties.</p>
                 <p className="text-gray-400 text-base mt-1">All properties you close will appear here.</p>
               </div>
             )}
@@ -1287,7 +1287,7 @@ export default function AdminPage() {
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-xl">No follow-up properties found.</p>
+                <p className="text-gray-500 text-xl">No follow-up properties.</p>
                 <p className="text-gray-400 text-base mt-1">All properties you follow will appear here.</p>
               </div>
             )}
