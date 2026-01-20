@@ -13,7 +13,7 @@ export default function TermsPage() {
 
   return (
     <Layout customTitle="T&Cs">
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-gray-50 py-6 px-4">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6 md:p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms & Conditions</h1>
           <p className="text-sm text-gray-500 mb-8">Last updated: January 21, 2026</p>
