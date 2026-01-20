@@ -5,10 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon, Info, Send } from 'lucide-react';
 import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getPropertyStatus, getStaffNotes, saveStaffNotes, getUserNotes, saveUserNotes, getPrivateNotes, savePrivateNotes } from '@/utils/propertyUtils';
 import { parsePropertyType, getPropertyTypeDisplayLabel } from '@/utils/propertyTypes';
+import { NoteBlock, getStaffNotesBlocks, saveStaffNotesBlocks, getUserNotesBlocks, saveUserNotesBlocks, getPrivateNotesBlocks, savePrivateNotesBlocks, hasAnyNotes } from '@/utils/noteBlocks';
 import ImageLightbox from '@/components/ImageLightbox';
 import SharePopup from '@/components/SharePopup';
 import Layout from '@/components/Layout';
 import LoginPopup from '@/components/LoginPopup';
+import NotesModal from '@/components/NotesModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { ShareManager } from '@/utils/shareUtils';
@@ -37,9 +39,8 @@ export default function PropertyDetailsPage() {
   const [wasOpenedFromActionsModal, setWasOpenedFromActionsModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoModalMessage, setInfoModalMessage] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notesBlocks, setNotesBlocks] = useState<NoteBlock[]>([]);
   const [hasNotes, setHasNotes] = useState(false);
-  const [isNotesEditable, setIsNotesEditable] = useState(false);
   const [notesKeyboardInset, setNotesKeyboardInset] = useState(0);
   const [showUpdatedDateModal, setShowUpdatedDateModal] = useState(false);
   const [showStatusConfirmationModal, setShowStatusConfirmationModal] = useState(false);
@@ -54,18 +55,15 @@ export default function PropertyDetailsPage() {
   const [showUploaderProfileModal, setShowUploaderProfileModal] = useState(false);
   const [uploaderUser, setUploaderUser] = useState<{ id: string; name: string; firstName?: string; lastName?: string; email: string; phone?: string; role: string; profileImage?: string; bio?: string; isApproved?: boolean } | null>(null);
   const [showUserNotesModal, setShowUserNotesModal] = useState(false);
-  const [userNotes, setUserNotes] = useState('');
-  const [isUserNotesEditable, setIsUserNotesEditable] = useState(false);
+  const [userNotesBlocks, setUserNotesBlocks] = useState<NoteBlock[]>([]);
   const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
   const [hasUserNotes, setHasUserNotes] = useState(false);
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
   const [showUploaderImagePreview, setShowUploaderImagePreview] = useState(false);
-  const [privateNotes, setPrivateNotes] = useState('');
+  const [privateNotesBlocks, setPrivateNotesBlocks] = useState<NoteBlock[]>([]);
   const [hasPrivateNotes, setHasPrivateNotes] = useState(false);
-  const [isPrivateNotesEditable, setIsPrivateNotesEditable] = useState(false);
   const [showPrivateNotesModal, setShowPrivateNotesModal] = useState(false);
   const [privateNotesKeyboardInset, setPrivateNotesKeyboardInset] = useState(0);
-  const privateNotesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showPrivateNotesInfo, setShowPrivateNotesInfo] = useState(false);
 
   // Prevent body scrolling when booking modal is open
@@ -272,8 +270,8 @@ export default function PropertyDetailsPage() {
   useEffect(() => {
     if (typeof window !== 'undefined' && userId && property && 'ownerId' in property && property.ownerId === userId && user && user.role !== 'staff' && user.role !== 'admin') {
       const checkPrivateNotes = () => {
-        const notes = getPrivateNotes(property.id, userId);
-        setHasPrivateNotes(notes.trim().length > 0);
+        const blocks = getPrivateNotesBlocks(property.id, userId);
+        setHasPrivateNotes(hasAnyNotes(blocks));
       };
       checkPrivateNotes();
       window.addEventListener('storage', checkPrivateNotes);
@@ -384,8 +382,8 @@ export default function PropertyDetailsPage() {
       const checkNotes = () => {
         // Only staff/admin can have notes - check shared staff notes
         if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
-          const notes = getStaffNotes(property.id);
-          setHasNotes(notes.trim().length > 0);
+          const blocks = getStaffNotesBlocks(property.id);
+          setHasNotes(hasAnyNotes(blocks));
         } else {
           setHasNotes(false);
         }
@@ -479,8 +477,8 @@ export default function PropertyDetailsPage() {
     if (uploaderUser && typeof window !== 'undefined') {
       const checkUserNotes = () => {
         if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
-          const notes = getUserNotes(uploaderUser.id);
-          setHasUserNotes(notes.trim().length > 0);
+          const blocks = getUserNotesBlocks(uploaderUser.id);
+          setHasUserNotes(hasAnyNotes(blocks));
         } else {
           setHasUserNotes(false);
         }
@@ -883,10 +881,9 @@ export default function PropertyDetailsPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (typeof window !== 'undefined' && userId) {
-                          const notes = getPrivateNotes(property.id, userId);
-                          setPrivateNotes(notes);
+                          const blocks = getPrivateNotesBlocks(property.id, userId);
+                          setPrivateNotesBlocks(blocks);
                         }
-                        setIsPrivateNotesEditable(false);
                         setShowPrivateNotesModal(true);
                         markPropertyAsViewed();
                       }}
@@ -1076,8 +1073,8 @@ export default function PropertyDetailsPage() {
                           >
                             {property.ownerName}{'uploaderType' in property && property.uploaderType ? ` (${property.uploaderType})` : ''}
                             {((user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) && 'ownerId' in property && property.ownerId && typeof window !== 'undefined') && (() => {
-                              const notes = getUserNotes(property.ownerId);
-                              return notes.trim().length > 0;
+                              const blocks = getUserNotesBlocks(property.ownerId);
+                              return hasAnyNotes(blocks);
                             })() && (
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                             )}
@@ -1188,10 +1185,9 @@ export default function PropertyDetailsPage() {
                 <button
                   onClick={() => {
                     if (typeof window !== 'undefined' && userId) {
-                      const notes = getPrivateNotes(property.id, userId);
-                      setPrivateNotes(notes);
+                      const blocks = getPrivateNotesBlocks(property.id, userId);
+                      setPrivateNotesBlocks(blocks);
                     }
-                    setIsPrivateNotesEditable(false);
                     setShowPrivateNotesModal(true);
                     markPropertyAsViewed();
                   }}
@@ -1454,139 +1450,33 @@ export default function PropertyDetailsPage() {
       )}
 
       {/* Notes Modal */}
-      {showNotesModal && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{
-            touchAction: 'none',
-            minHeight: '100vh',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+      {showNotesModal && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') && property && (
+        <NotesModal
+          title="Follow-up notes"
+          blocks={notesBlocks}
+          onSave={(blocks) => {
+            if (typeof window !== 'undefined' && property && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
+              saveStaffNotesBlocks(property.id, blocks);
+              setHasNotes(hasAnyNotes(blocks));
+            }
+            setShowNotesModal(false);
+            // Reopen property actions modal if notes was opened from there
+            if (wasOpenedFromActionsModal) {
+              setShowThreeDotsModal(true);
+              setWasOpenedFromActionsModal(false);
+            }
           }}
-        >
-          <div
-            className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              transform: notesKeyboardInset > 0 ? `translateY(-${notesKeyboardInset}px)` : 'translateY(0)',
-              transition: 'transform 0.2s ease-out'
-            }}
-          >
-            <div className="flex justify-between items-center mb-3 relative pt-1">
-              <h3 className="text-xl font-semibold text-black flex-1 text-center">
-                Follow-up notes
-              </h3>
-            </div>
-            
-            <textarea
-              className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
-              placeholder={isNotesEditable ? "Add your notes about this property..." : "Double-click to edit/add notes..."}
-              rows={6}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              readOnly={!isNotesEditable}
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                if ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') {
-                  // First remove readOnly by enabling edit mode
-                  setIsNotesEditable(true);
-                  // Then focus after a short delay to ensure readOnly is removed
-                  requestAnimationFrame(() => {
-                    setTimeout(() => {
-                      const textarea = e.currentTarget as HTMLTextAreaElement;
-                      if (textarea) {
-                        // Remove readOnly attribute directly to ensure keyboard opens
-                        textarea.removeAttribute('readonly');
-                        textarea.focus();
-                        // Move cursor to end of text
-                        const length = textarea.value.length;
-                        textarea.setSelectionRange(length, length);
-                      }
-                    }, 0);
-                  });
-                }
-              }}
-              onTouchStart={(e) => {
-                // On mobile, handle double tap to enable edit and focus
-                if (!isNotesEditable && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
-                  const target = e.currentTarget;
-                  const now = Date.now();
-                  const lastTap = (target as any).lastTap || 0;
-                  
-                  if (now - lastTap < 300) {
-                    // Double tap detected
-                    e.preventDefault();
-                    setIsNotesEditable(true);
-                    requestAnimationFrame(() => {
-                      setTimeout(() => {
-                        target.removeAttribute('readonly');
-                        target.focus();
-                        const length = target.value.length;
-                        target.setSelectionRange(length, length);
-                      }, 0);
-                    });
-                  }
-                  (target as any).lastTap = now;
-                }
-              }}
-            />
-
-            <div className="flex gap-2 mt-1.5">
-              <button
-                onClick={() => {
-                  // Save notes to localStorage - staff and admin can save
-                  if (typeof window !== 'undefined' && property && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
-                    saveStaffNotes(property.id, notes);
-                    setHasNotes(notes.trim().length > 0);
-                  }
-                  setIsNotesEditable(false);
-                  setShowNotesModal(false);
-                  // Reopen property actions modal if notes was opened from there
-                  if (wasOpenedFromActionsModal) {
-                    setShowThreeDotsModal(true);
-                    setWasOpenedFromActionsModal(false);
-                  }
-                }}
-                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
-                style={{ 
-                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setIsNotesEditable(false);
-                  setShowNotesModal(false);
-                  setNotes('');
-                  // Reopen property actions modal if notes was opened from there
-                  if (wasOpenedFromActionsModal) {
-                    setShowThreeDotsModal(true);
-                    setWasOpenedFromActionsModal(false);
-                  }
-                }}
-                className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
-                style={{ 
-                  backgroundColor: '#ef4444',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+          onClose={() => {
+            setShowNotesModal(false);
+            // Reopen property actions modal if notes was opened from there
+            if (wasOpenedFromActionsModal) {
+              setShowThreeDotsModal(true);
+              setWasOpenedFromActionsModal(false);
+            }
+          }}
+          currentUserName={user?.firstName || user?.name || 'Unknown'}
+          keyboardInset={notesKeyboardInset}
+        />
       )}
 
       {/* Updated Date Modal */}
@@ -1992,15 +1882,10 @@ export default function PropertyDetailsPage() {
                   // Load notes for staff/admin
                   if (typeof window !== 'undefined' && property) {
                     if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
-                      const notes = getStaffNotes(property.id);
-                      setNotes(notes);
-                    } else if (user?.id) {
-                      const key = `rentapp_notes_${user.id}_${property.id}`;
-                      const savedNotes = localStorage.getItem(key) || '';
-                      setNotes(savedNotes);
+                      const blocks = getStaffNotesBlocks(property.id);
+                      setNotesBlocks(blocks);
                     }
                   }
-                  setIsNotesEditable(false);
                   setWasOpenedFromActionsModal(true);
                   setShowNotesModal(true);
                 }}
@@ -2447,9 +2332,8 @@ export default function PropertyDetailsPage() {
                 onClick={() => {
                   if (uploaderUser) {
                     // Load user notes
-                    const notes = getUserNotes(uploaderUser.id);
-                    setUserNotes(notes);
-                    setIsUserNotesEditable(false);
+                    const blocks = getUserNotesBlocks(uploaderUser.id);
+                    setUserNotesBlocks(blocks);
                     // Don't close the uploader profile modal
                     setShowUserNotesModal(true);
                   }
@@ -2477,128 +2361,31 @@ export default function PropertyDetailsPage() {
 
       {/* User Notes Modal - Admin/Staff Only */}
       {showUserNotesModal && uploaderUser && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{
-            touchAction: 'none',
-            minHeight: '100vh',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        <NotesModal
+          title="User notes (Behaviour)"
+          blocks={userNotesBlocks}
+          onSave={(blocks) => {
+            if (typeof window !== 'undefined' && uploaderUser && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
+              saveUserNotesBlocks(uploaderUser.id, blocks);
+              setHasUserNotes(hasAnyNotes(blocks));
+            }
+            setShowUserNotesModal(false);
+            // Reopen uploader profile modal
+            if (uploaderUser) {
+              setShowUploaderProfileModal(true);
+            }
           }}
-        >
-          <div
-            className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              transform: userNotesKeyboardInset > 0 ? `translateY(-${userNotesKeyboardInset}px)` : 'translateY(0)',
-              transition: 'transform 0.2s ease-out'
-            }}
-          >
-            <div className="flex justify-between items-center mb-3 relative pt-1">
-              <h3 className="text-xl font-semibold text-black flex-1 text-center">
-                User notes (Behaviour)
-              </h3>
-            </div>
-            
-            <textarea
-              className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isUserNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
-              placeholder={isUserNotesEditable ? "Add notes about this user's behaviour..." : "Double-click to edit/add notes..."}
-              rows={6}
-              value={userNotes}
-              onChange={(e) => setUserNotes(e.target.value)}
-              readOnly={!isUserNotesEditable}
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                if ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') {
-                  setIsUserNotesEditable(true);
-                  requestAnimationFrame(() => {
-                    setTimeout(() => {
-                      const textarea = e.currentTarget as HTMLTextAreaElement;
-                      if (textarea) {
-                        textarea.removeAttribute('readonly');
-                        textarea.focus();
-                        const length = textarea.value.length;
-                        textarea.setSelectionRange(length, length);
-                      }
-                    }, 0);
-                  });
-                }
-              }}
-              onTouchStart={(e) => {
-                if (!isUserNotesEditable && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
-                  const target = e.currentTarget;
-                  const now = Date.now();
-                  const lastTap = (target as any).lastTap || 0;
-                  
-                  if (now - lastTap < 300) {
-                    e.preventDefault();
-                    setIsUserNotesEditable(true);
-                    requestAnimationFrame(() => {
-                      setTimeout(() => {
-                        target.removeAttribute('readonly');
-                        target.focus();
-                        const length = target.value.length;
-                        target.setSelectionRange(length, length);
-                      }, 0);
-                    });
-                  }
-                  (target as any).lastTap = now;
-                }
-              }}
-            />
-
-            <div className="flex gap-2 mt-1.5">
-              <button
-                onClick={() => {
-                  if (typeof window !== 'undefined' && uploaderUser && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
-                    saveUserNotes(uploaderUser.id, userNotes);
-                  }
-                  setIsUserNotesEditable(false);
-                  setShowUserNotesModal(false);
-                  // Reopen uploader profile modal
-                  if (uploaderUser) {
-                    setShowUploaderProfileModal(true);
-                  }
-                }}
-                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
-                style={{ 
-                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setIsUserNotesEditable(false);
-                  setShowUserNotesModal(false);
-                  setUserNotes('');
-                  // Reopen uploader profile modal
-                  if (uploaderUser) {
-                    setShowUploaderProfileModal(true);
-                  }
-                }}
-                className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
-                style={{ 
-                  backgroundColor: '#ef4444',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+          onClose={() => {
+            setShowUserNotesModal(false);
+            // Reopen uploader profile modal
+            if (uploaderUser) {
+              setShowUploaderProfileModal(true);
+            }
+          }}
+          currentUserName={user?.firstName || user?.name || 'Unknown'}
+          keyboardInset={userNotesKeyboardInset}
+          showEditorName={false}
+        />
       )}
 
       {/* Uploader Profile Image Preview */}
@@ -2614,134 +2401,40 @@ export default function PropertyDetailsPage() {
 
       {/* Private Notes Modal - For regular users viewing their own property */}
       {showPrivateNotesModal && user && userId && property && 'ownerId' in property && property.ownerId === userId && user.role !== 'staff' && user.role !== 'admin' && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{
-            touchAction: 'none',
-            minHeight: '100vh',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }}
-        >
-          <div
-            className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              transform: privateNotesKeyboardInset > 0 ? `translateY(-${privateNotesKeyboardInset}px)` : 'translateY(0)',
-              transition: 'transform 0.2s ease-out'
+        <div>
+          <NotesModal
+            title="Private Notes"
+            blocks={privateNotesBlocks}
+            onSave={(blocks) => {
+              if (typeof window !== 'undefined' && userId && property) {
+                savePrivateNotesBlocks(property.id, userId, blocks);
+                setHasPrivateNotes(hasAnyNotes(blocks));
+              }
+              setShowPrivateNotesModal(false);
+            }}
+            onClose={() => {
+              setShowPrivateNotesModal(false);
+            }}
+            currentUserName={user?.firstName || user?.name || 'You'}
+            keyboardInset={privateNotesKeyboardInset}
+            showEditorName={false}
+          />
+          {/* Info button overlay */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPrivateNotesInfo(true);
+            }}
+            className="fixed z-[60] p-2 text-blue-500 hover:bg-gray-300 rounded transition-all cursor-pointer"
+            title="Privacy information"
+            style={{ 
+              top: '50%', 
+              left: '50%',
+              transform: 'translate(-50%, -50%) translateY(-240px) translateX(190px)',
             }}
           >
-            <div className="flex justify-between items-center mb-3 relative pt-1">
-              <h3 className="text-xl font-semibold text-black flex-1 text-center">
-                Private Notes
-              </h3>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPrivateNotesInfo(true);
-                }}
-                className="absolute right-0 p-2 text-blue-500 hover:bg-gray-300 rounded transition-all cursor-pointer"
-                title="Privacy information"
-                style={{ top: '50%', transform: 'translateY(-50%)' }}
-              >
-                <Info size={22} />
-              </button>
-            </div>
-            
-            {/* Regular user view: Editable notes */}
-            <textarea
-              ref={privateNotesTextareaRef}
-              className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isPrivateNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
-              placeholder={isPrivateNotesEditable ? "Add your private notes about this property..." : "Double-click to edit/add notes..."}
-              rows={6}
-              value={privateNotes}
-              onChange={(e) => setPrivateNotes(e.target.value)}
-              readOnly={!isPrivateNotesEditable}
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                setIsPrivateNotesEditable(true);
-                requestAnimationFrame(() => {
-                  setTimeout(() => {
-                    if (privateNotesTextareaRef.current) {
-                      privateNotesTextareaRef.current.removeAttribute('readonly');
-                      privateNotesTextareaRef.current.focus();
-                      const length = privateNotesTextareaRef.current.value.length;
-                      privateNotesTextareaRef.current.setSelectionRange(length, length);
-                    }
-                  }, 0);
-                });
-              }}
-              onTouchStart={(e) => {
-                if (!isPrivateNotesEditable) {
-                  const target = e.currentTarget;
-                  const now = Date.now();
-                  const lastTap = (target as any).lastTap || 0;
-                  
-                  if (now - lastTap < 300) {
-                    e.preventDefault();
-                    setIsPrivateNotesEditable(true);
-                    requestAnimationFrame(() => {
-                      setTimeout(() => {
-                        target.removeAttribute('readonly');
-                        target.focus();
-                        const length = target.value.length;
-                        target.setSelectionRange(length, length);
-                      }, 0);
-                    });
-                  }
-                  (target as any).lastTap = now;
-                }
-              }}
-            />
-
-            <div className="flex gap-2 mt-1.5">
-              <button
-                onClick={() => {
-                  if (typeof window !== 'undefined' && userId && property) {
-                    savePrivateNotes(property.id, userId, privateNotes);
-                    setHasPrivateNotes(privateNotes.trim().length > 0);
-                  }
-                  setIsPrivateNotesEditable(false);
-                  setShowPrivateNotesModal(false);
-                }}
-                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
-                style={{ 
-                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setIsPrivateNotesEditable(false);
-                  setShowPrivateNotesModal(false);
-                  // Reset to saved notes
-                  if (typeof window !== 'undefined' && userId && property) {
-                    const savedNotes = getPrivateNotes(property.id, userId);
-                    setPrivateNotes(savedNotes);
-                  }
-                }}
-                className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
-                style={{ 
-                  backgroundColor: '#ef4444',
-                  WebkitTapHighlightColor: 'transparent',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  outline: 'none'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+            <Info size={22} />
+          </button>
         </div>
       )}
 
