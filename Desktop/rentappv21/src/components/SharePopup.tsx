@@ -110,16 +110,25 @@ export default function SharePopup({ isOpen, onClose, shareOptions, showOtherAct
     setIsDownloading(true);
     setError(null);
 
+    let successCount = 0;
+    let failCount = 0;
+
     try {
       for (let i = 0; i < images.length; i++) {
         const imageUrl = images[i];
-        let blob: Blob;
-        let filename: string;
-
+        
         try {
+          let blob: Blob;
+          let filename: string;
+
           // Handle data URLs (base64)
           if (imageUrl.startsWith('data:image')) {
             const response = await fetch(imageUrl);
+            if (!response.ok) {
+              console.error(`Failed to fetch data URL image ${i + 1}`);
+              failCount++;
+              continue;
+            }
             blob = await response.blob();
             const extension = blob.type.split('/')[1] || 'jpg';
             filename = `property-image-${i + 1}.${extension}`;
@@ -133,7 +142,11 @@ export default function SharePopup({ isOpen, onClose, shareOptions, showOtherAct
             }
 
             const response = await fetch(absoluteUrl);
-            if (!response.ok) continue;
+            if (!response.ok) {
+              console.error(`Failed to fetch image ${i + 1} from ${absoluteUrl}: ${response.status} ${response.statusText}`);
+              failCount++;
+              continue;
+            }
             
             blob = await response.blob();
             
@@ -158,23 +171,44 @@ export default function SharePopup({ isOpen, onClose, shareOptions, showOtherAct
           const link = document.createElement('a');
           link.href = url;
           link.download = filename;
+          link.style.display = 'none';
           document.body.appendChild(link);
           link.click();
+          
+          // Wait a bit before removing to ensure download is triggered
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
 
-          // Small delay between downloads to avoid overwhelming the browser
+          successCount++;
+          console.log(`Successfully downloaded image ${i + 1}/${images.length}`);
+
+          // Delay between downloads to avoid overwhelming the browser
+          // Increased delay to ensure each download is processed
           if (i < images.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 300));
           }
         } catch (err) {
           console.error(`Error downloading image ${i + 1}:`, err);
+          failCount++;
           // Continue with next image even if one fails
         }
       }
+
+      // Log summary
+      console.log(`Download complete: ${successCount} successful, ${failCount} failed out of ${images.length} total`);
+      
+      if (failCount > 0 && successCount === 0) {
+        setError('Failed to download images. Please check your connection and try again.');
+        setTimeout(() => setError(null), 3000);
+      } else if (failCount > 0) {
+        setError(`Downloaded ${successCount} image(s), ${failCount} failed.`);
+        setTimeout(() => setError(null), 3000);
+      }
     } catch (err) {
       console.error('Error downloading images:', err);
-      setError('Failed to download some images. Please try again.');
+      setError('Failed to download images. Please try again.');
       setTimeout(() => setError(null), 3000);
     } finally {
       setIsDownloading(false);
