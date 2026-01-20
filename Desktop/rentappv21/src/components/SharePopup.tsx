@@ -110,10 +110,12 @@ export default function SharePopup({ isOpen, onClose, shareOptions, showOtherAct
     setIsDownloading(true);
     setError(null);
 
-    let successCount = 0;
+    // Step 1: Prepare all images (fetch blobs and create URLs)
+    const imageData: Array<{ blob: Blob; filename: string; url: string }> = [];
     let failCount = 0;
 
     try {
+      // First, fetch all images and prepare them
       for (let i = 0; i < images.length; i++) {
         const imageUrl = images[i];
         
@@ -166,44 +168,96 @@ export default function SharePopup({ isOpen, onClose, shareOptions, showOtherAct
             filename = `property-image-${i + 1}.${extension}`;
           }
 
-          // Create download link
+          // Create object URL and store the data
           const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = filename;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          
-          // Wait a bit before removing to ensure download is triggered
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-
-          successCount++;
-          console.log(`Successfully downloaded image ${i + 1}/${images.length}`);
-
-          // Delay between downloads to avoid overwhelming the browser
-          // Increased delay to ensure each download is processed
-          if (i < images.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
+          imageData.push({ blob, filename, url });
+          console.log(`Prepared image ${i + 1}/${images.length}: ${filename}`);
         } catch (err) {
-          console.error(`Error downloading image ${i + 1}:`, err);
+          console.error(`Error preparing image ${i + 1}:`, err);
           failCount++;
-          // Continue with next image even if one fails
         }
       }
 
+      // Step 2: Trigger downloads sequentially with sufficient delays
+      let successCount = 0;
+      
+      for (let i = 0; i < imageData.length; i++) {
+        const { url, filename } = imageData[i];
+        
+        try {
+          // Create download link
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.style.position = 'fixed';
+          link.style.left = '-9999px';
+          link.style.top = '-9999px';
+          link.style.opacity = '0';
+          link.style.pointerEvents = 'none';
+          link.style.visibility = 'hidden';
+          
+          document.body.appendChild(link);
+          
+          // Trigger download using multiple methods for compatibility
+          if (typeof MouseEvent === 'function') {
+            const event = new MouseEvent('click', {
+              view: window,
+              bubbles: true,
+              cancelable: true
+            });
+            link.dispatchEvent(event);
+          } else if (document.createEvent) {
+            const event = document.createEvent('MouseEvents');
+            event.initEvent('click', true, true);
+            link.dispatchEvent(event);
+          } else {
+            link.click();
+          }
+          
+          successCount++;
+          console.log(`Triggered download ${i + 1}/${imageData.length}: ${filename}`);
+          
+          // Clean up this link after a delay (keep URL alive until download completes)
+          setTimeout(() => {
+            try {
+              if (link.parentNode) {
+                document.body.removeChild(link);
+              }
+            } catch (e) {
+              console.warn('Link cleanup error:', e);
+            }
+          }, 2000);
+
+          // Critical: Wait longer between downloads to prevent browser blocking
+          // Many browsers require 1000ms+ delay between programmatic downloads
+          if (i < imageData.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1200));
+          }
+        } catch (err) {
+          console.error(`Error triggering download for ${filename}:`, err);
+          failCount++;
+        }
+      }
+
+      // Clean up all object URLs after all downloads are triggered
+      setTimeout(() => {
+        imageData.forEach(({ url }) => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            console.warn('URL cleanup error:', e);
+          }
+        });
+      }, 5000);
+
       // Log summary
-      console.log(`Download complete: ${successCount} successful, ${failCount} failed out of ${images.length} total`);
+      console.log(`Download process complete: ${successCount} triggered, ${failCount} failed out of ${images.length} total`);
       
       if (failCount > 0 && successCount === 0) {
         setError('Failed to download images. Please check your connection and try again.');
         setTimeout(() => setError(null), 3000);
       } else if (failCount > 0) {
-        setError(`Downloaded ${successCount} image(s), ${failCount} failed.`);
+        setError(`Triggered download for ${successCount} image(s), ${failCount} failed.`);
         setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
