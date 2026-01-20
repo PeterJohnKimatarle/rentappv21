@@ -115,7 +115,7 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
 
             {/* Terms & Conditions */}
             <div className="text-center pt-4 pb-2">
-              <p className="text-xs text-gray-600">
+              <p className="text-sm text-gray-600">
                 By using Rentapp you agree to our{' '}
                 <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
                   Terms & Conditions
