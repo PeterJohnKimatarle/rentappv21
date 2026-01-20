@@ -111,14 +111,20 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
               <p className="text-sm text-gray-500 mt-2">
                 Built for renters, brokers, and owners.
               </p>
-              <div className="flex justify-center items-center gap-4 mt-4">
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
+            </div>
+
+            {/* Terms & Conditions */}
+            <div className="text-center pt-4 pb-2">
+              <p className="text-xs text-gray-600">
+                By using Rentapp you agree to our{' '}
+                <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
                   Terms & Conditions
                 </a>
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
+                {' '}and{' '}
+                <a href="/privacy-policy" className="text-blue-600 hover:text-blue-800 underline">
                   Privacy Policy
                 </a>
-              </div>
+              </p>
             </div>
           </div>
         </div>

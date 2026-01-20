@@ -96,6 +96,20 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
                 Rentapp will appear as an app icon on your home screen or app drawer after installation.
               </p>
             </div>
+
+            {/* Terms & Conditions */}
+            <div className="text-center pt-2 pb-2">
+              <p className="text-xs text-gray-600">
+                By using Rentapp you agree to our{' '}
+                <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
+                  Terms & Conditions
+                </a>
+                {' '}and{' '}
+                <a href="/privacy-policy" className="text-blue-600 hover:text-blue-800 underline">
+                  Privacy Policy
+                </a>
+              </p>
+            </div>
           </div>
         </div>
 
