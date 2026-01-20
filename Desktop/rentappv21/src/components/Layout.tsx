@@ -322,6 +322,11 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
   };
 
   const getPageTitle = () => {
+    // Use custom title if provided
+    if (customTitle) {
+      return customTitle;
+    }
+    
     // Check if we're on a property detail page
     if (pathname.startsWith('/property/')) {
       return 'Full Details';
