@@ -22,9 +22,10 @@ interface LayoutProps {
   totalCount?: number;
   filteredCount?: number;
   hasActiveFilters?: boolean;
+  customTitle?: string;
 }
 
-export default function Layout({ children, totalCount, filteredCount, hasActiveFilters = false }: LayoutProps) {
+export default function Layout({ children, totalCount, filteredCount, hasActiveFilters = false, customTitle }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false);
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
@@ -520,7 +521,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
           >
             <NextImage src="/icon.png" alt="Rentapp Logo" width={48} height={48} />
             <h1 className="text-2xl font-bold text-booking-blue flex items-center gap-1 mt-1 -ml-1">
-              Rentapp
+              {customTitle || 'Rentapp'}
               {countLabel && (
                 <span className="text-xl font-medium mt-0.5">[{countLabel}]</span>
               )}
@@ -576,7 +577,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
         >
           <NextImage src="/icon.png" alt="Rentapp Logo" width={56} height={56} />
           <h1 className="text-3xl font-semibold text-booking-blue flex items-baseline gap-1 mt-1 -ml-1">
-            Rentapp
+            {customTitle || 'Rentapp'}
             {countLabel && (
               <span className="text-2xl font-medium leading-none">[{countLabel}]</span>
             )}

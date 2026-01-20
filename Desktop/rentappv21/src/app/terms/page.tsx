@@ -12,7 +12,7 @@ export default function TermsPage() {
   const router = useRouter();
 
   return (
-    <Layout>
+    <Layout customTitle="T&Cs">
       <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6 md:p-8">
           {/* Back Button */}
