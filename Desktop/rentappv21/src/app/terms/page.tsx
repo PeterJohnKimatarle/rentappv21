@@ -3,8 +3,12 @@
 import Layout from '@/components/Layout';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function TermsPage() {
+  useEffect(() => {
+    document.title = 'T&Cs';
+  }, []);
   const router = useRouter();
 
   return (
@@ -20,7 +24,7 @@ export default function TermsPage() {
             <span>Back</span>
           </button>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">T&Cs</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms & Conditions</h1>
           <p className="text-sm text-gray-500 mb-8">Last updated: January 21, 2026</p>
 
           <div className="prose prose-gray max-w-none">
