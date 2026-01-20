@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Chrome, Compass, Globe } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
@@ -101,13 +102,13 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
             <div className="text-center pt-2 pb-2">
               <p className="text-sm text-gray-600">
                 By using Rentapp you agree to our{' '}
-                <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
+                <Link href="/terms" className="text-blue-600 hover:text-blue-800 underline">
                   Terms & Conditions
-                </a>
+                </Link>
                 {' '}and{' '}
-                <a href="/privacy-policy" className="text-blue-600 hover:text-blue-800 underline">
+                <Link href="/privacy-policy" className="text-blue-600 hover:text-blue-800 underline">
                   Privacy Policy
-                </a>
+                </Link>
               </p>
             </div>
           </div>

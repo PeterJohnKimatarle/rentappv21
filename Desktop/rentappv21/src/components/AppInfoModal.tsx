@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Smartphone, Info, Zap, Heart } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
