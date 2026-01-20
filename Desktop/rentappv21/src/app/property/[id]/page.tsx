@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon, Info } from 'lucide-react';
+import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon, Info, Send } from 'lucide-react';
 import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getPropertyStatus, getStaffNotes, saveStaffNotes, getUserNotes, saveUserNotes, getPrivateNotes, savePrivateNotes } from '@/utils/propertyUtils';
 import { parsePropertyType, getPropertyTypeDisplayLabel } from '@/utils/propertyTypes';
 import ImageLightbox from '@/components/ImageLightbox';
@@ -24,6 +24,7 @@ export default function PropertyDetailsPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [displayedImageIndex, setDisplayedImageIndex] = useState(0);
   const [showSharePopup, setShowSharePopup] = useState(false);
+  const [showOtherActions, setShowOtherActions] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingModalType, setBookingModalType] = useState<'book' | 'status'>('book');
@@ -533,7 +534,7 @@ export default function PropertyDetailsPage() {
       return;
     }
     if (!userId) {
-      setIsLoginPopupOpen(true);
+      alert('Please login to save this property.');
       return;
     }
     if (bookmarked) {
@@ -626,6 +627,12 @@ export default function PropertyDetailsPage() {
   };
 
   const handleShareClick = () => {
+    setShowOtherActions(false);
+    setShowSharePopup(true);
+  };
+
+  const handlePaperPlaneClick = () => {
+    setShowOtherActions(true);
     setShowSharePopup(true);
   };
 
@@ -708,13 +715,7 @@ export default function PropertyDetailsPage() {
             <img
               src={mainImage}
               alt={property.title}
-              className={`w-full h-full object-cover ${property.images && property.images.length > 1 ? 'cursor-pointer' : ''}`}
-              onClick={() => {
-                if (property.images && property.images.length > 1) {
-                setCurrentImageIndex(displayedImageIndex);
-                setIsLightboxOpen(true);
-                }
-              }}
+              className="w-full h-full object-cover"
             />
             
             {/* Left Click Area - Previous Image */}
@@ -772,7 +773,7 @@ export default function PropertyDetailsPage() {
 
             {/* Share Icon */}
             <div 
-              className="absolute top-14 xl:top-16 right-2 px-2 py-1 xl:px-3 xl:py-1.5 rounded-md flex items-center justify-center text-white text-sm xl:text-base cursor-pointer z-20" 
+              className="absolute top-12 xl:top-14 right-2 px-2 py-1 xl:px-3 xl:py-1.5 rounded-md flex items-center justify-center text-white text-sm xl:text-base cursor-pointer z-20" 
               style={{ 
                 backgroundColor: 'rgba(0, 0, 0, 0.5)'
               }}
@@ -784,6 +785,29 @@ export default function PropertyDetailsPage() {
               onTouchStart={(e) => e.stopPropagation()}
             >
               <Share2 
+                size={24} 
+                className="w-6 h-6 xl:w-7 xl:h-7" 
+                style={{ 
+                  color: 'white',
+                  strokeWidth: 1.5
+                }}
+              />
+      </div>
+
+            {/* Paper Plane Icon */}
+            <div 
+              className="absolute top-[5.5rem] xl:top-[6.5rem] right-2 px-2 py-1 xl:px-3 xl:py-1.5 rounded-md flex items-center justify-center text-white text-sm xl:text-base cursor-pointer z-20" 
+              style={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.5)'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePaperPlaneClick();
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <Send 
                 size={24} 
                 className="w-6 h-6 xl:w-7 xl:h-7" 
                 style={{ 
@@ -2116,6 +2140,7 @@ export default function PropertyDetailsPage() {
       <SharePopup
         isOpen={showSharePopup}
         onClose={() => setShowSharePopup(false)}
+        showOtherActions={showOtherActions}
         shareOptions={{
           property: {
             id: property.id,
