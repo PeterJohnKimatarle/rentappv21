@@ -157,29 +157,30 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
                 </Link>
               </p>
             </div>
+
+            {/* Language Switcher */}
+            <div className="text-center pt-2 pb-2">
+              <span className="text-sm text-gray-600">Change language (</span>
+              <button
+                onClick={() => setLanguage('sw')}
+                className={`text-sm ${language === 'sw' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                sw
+              </button>
+              <span className="text-sm text-gray-600">/</span>
+              <button
+                onClick={() => setLanguage('en')}
+                className={`text-sm ${language === 'en' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                en
+              </button>
+              <span className="text-sm text-gray-600">)</span>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="p-3 bg-gray-50 border-t border-gray-200">
-          <div className="text-center mb-3">
-            <span className="text-sm text-gray-600">Change language (</span>
-            <button
-              onClick={() => setLanguage('sw')}
-              className={`text-sm ${language === 'sw' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'}`}
-            >
-              sw
-            </button>
-            <span className="text-sm text-gray-600">/</span>
-            <button
-              onClick={() => setLanguage('en')}
-              className={`text-sm ${language === 'en' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'}`}
-            >
-              en
-            </button>
-            <span className="text-sm text-gray-600">)</span>
-          </div>
-
           <button
             onClick={handleClose}
             className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 py-3 rounded-lg font-medium transition-colors"
