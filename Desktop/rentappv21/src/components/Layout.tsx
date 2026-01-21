@@ -311,17 +311,18 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
     }
   };
 
-  const handleBackClick = () => {
+  const handleBackClick = useCallback(() => {
     // Always use browser history to go back to previous page
     // Check if there's history to go back to
     if (window.history.length > 1) {
-      router.back();
+      // Use native browser back for instant navigation
+      window.history.back();
     } else {
       // Fallback to home page - preserve search session if active
       const homeUrl = buildSearchUrl();
       router.push(homeUrl);
     }
-  };
+  }, [router]);
 
   const getPageTitle = () => {
     // Use custom title if provided
