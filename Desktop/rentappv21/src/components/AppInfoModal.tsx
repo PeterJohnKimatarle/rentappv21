@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Smartphone, Info, Zap, Heart, Languages } from 'lucide-react';
+import { Smartphone, Info, Zap, Heart } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { useRef, useLayoutEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -161,33 +161,23 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-gray-50 border-t border-gray-200 space-y-3">
-          {/* Language Switcher */}
-          <div className="flex items-center justify-center gap-2 pb-1">
-            <Languages size={18} className="text-gray-600" />
-            <span className="text-sm text-gray-600">Change language:</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  language === 'en'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => setLanguage('sw')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  language === 'sw'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                SW
-              </button>
-            </div>
+        <div className="p-3 bg-gray-50 border-t border-gray-200">
+          <div className="text-center mb-3">
+            <span className="text-sm text-gray-600">Change language (</span>
+            <button
+              onClick={() => setLanguage('sw')}
+              className={`text-sm ${language === 'sw' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'}`}
+            >
+              sw
+            </button>
+            <span className="text-sm text-gray-600">/</span>
+            <button
+              onClick={() => setLanguage('en')}
+              className={`text-sm ${language === 'en' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'}`}
+            >
+              en
+            </button>
+            <span className="text-sm text-gray-600">)</span>
           </div>
 
           <button
