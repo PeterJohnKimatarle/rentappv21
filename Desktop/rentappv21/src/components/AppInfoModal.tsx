@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Smartphone, Info, Zap, Heart } from 'lucide-react';
+import { Smartphone, Info, Zap, Heart, Languages } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { useRef, useLayoutEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -160,7 +160,8 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
 
             {/* Language Switcher */}
             <div className="text-center pt-2 pb-2">
-              <label className="cursor-pointer inline-block relative">
+              <label className="cursor-pointer inline-flex items-center justify-center gap-1 relative">
+                <Languages size={16} className="text-gray-600" />
                 <span className="text-sm text-gray-600">
                   Change language (
                   <span className={language === 'sw' ? 'text-blue-600 font-semibold' : ''}>sw</span>
