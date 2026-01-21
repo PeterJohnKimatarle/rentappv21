@@ -144,14 +144,21 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
 
             {/* Language Switcher */}
             <div className="text-center pt-2 pb-2">
-              <label className="cursor-pointer inline-block">
-                <span className="text-sm text-gray-600">Change language (sw/en)</span>
+              <label className="cursor-pointer inline-block relative">
+                <span className="text-sm text-gray-600">
+                  Change language (
+                  <span className={language === 'sw' ? 'text-blue-600 font-semibold' : ''}>sw</span>
+                  /
+                  <span className={language === 'en' ? 'text-blue-600 font-semibold' : ''}>en</span>
+                  )
+                </span>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value as 'en' | 'sw')}
                   className="absolute opacity-0 w-full h-full top-0 left-0 cursor-pointer"
                   style={{ pointerEvents: 'all' }}
                 >
+                  <option value="">---</option>
                   <option value="en">English</option>
                   <option value="sw">Swahili</option>
                 </select>
