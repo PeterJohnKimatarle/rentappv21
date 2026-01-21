@@ -154,7 +154,12 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
                 </span>
                 <select
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value as 'en' | 'sw')}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    if (newValue !== '') {
+                      setLanguage(newValue as 'en' | 'sw');
+                    }
+                  }}
                   className="absolute opacity-0 w-full h-full top-0 left-0 cursor-pointer"
                   style={{ pointerEvents: 'all' }}
                 >
