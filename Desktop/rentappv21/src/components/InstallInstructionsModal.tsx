@@ -3,15 +3,43 @@
 import Link from 'next/link';
 import { Chrome, Compass, Globe } from 'lucide-react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
+import { useRef, useLayoutEffect } from 'react';
 
 interface InstallInstructionsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const SCROLL_STORAGE_KEY = 'installModalScroll';
+
 export default function InstallInstructionsModal({ isOpen, onClose }: InstallInstructionsModalProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  
   // Block background scroll when modal is open
   usePreventScroll(isOpen);
+
+  // Restore scroll position when modal opens (useLayoutEffect prevents flash)
+  useLayoutEffect(() => {
+    if (isOpen && contentRef.current) {
+      const savedScroll = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+      if (savedScroll) {
+        contentRef.current.scrollTop = parseInt(savedScroll, 10);
+      }
+    }
+  }, [isOpen]);
+
+  // Save scroll position when navigating to terms/privacy
+  const handleLinkClick = () => {
+    if (contentRef.current) {
+      sessionStorage.setItem(SCROLL_STORAGE_KEY, contentRef.current.scrollTop.toString());
+    }
+  };
+
+  // Clear saved scroll on modal close
+  const handleClose = () => {
+    sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -37,7 +65,7 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div ref={contentRef} className="p-6 overflow-y-auto flex-1">
           <div className="space-y-6">
             <div className="text-center">
               <p className="text-gray-600 mb-4">
@@ -102,11 +130,11 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
             <div className="text-center pt-2 pb-2">
               <p className="text-sm text-gray-600">
                 By using Rentapp you agree to our{' '}
-                <Link href="/terms" className="text-blue-600 hover:text-blue-800 underline">
+                <Link href="/terms" className="text-blue-600 hover:text-blue-800 underline" prefetch={true} onClick={handleLinkClick}>
                   Terms & Conditions
                 </Link>
                 {' '}and{' '}
-                <Link href="/privacy-policy" className="text-blue-600 hover:text-blue-800 underline">
+                <Link href="/privacy-policy" className="text-blue-600 hover:text-blue-800 underline" prefetch={true} onClick={handleLinkClick}>
                   Privacy Policy
                 </Link>
               </p>
@@ -117,7 +145,7 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
         {/* Footer */}
         <div className="p-3 bg-gray-50 border-t border-gray-200">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 py-3 rounded-lg font-medium transition-colors"
           >
             Ok, I got it

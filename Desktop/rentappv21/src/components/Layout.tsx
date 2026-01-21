@@ -26,16 +26,18 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, totalCount, filteredCount, hasActiveFilters = false, customTitle }: LayoutProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Initialize modal state from URL params to prevent flash
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false);
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showInstallModal, setShowInstallModal] = useState(false);
-  const [showAppInfoModal, setShowAppInfoModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(() => searchParams.get('modal') === 'install');
+  const [showAppInfoModal, setShowAppInfoModal] = useState(() => searchParams.get('modal') === 'appinfo');
   const menuRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, isAuthenticated, logout, isImpersonating } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
@@ -428,6 +430,45 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
     }
   }, [isAuthenticated]);
 
+  // Handle modal state from URL params on mount and navigation
+  useEffect(() => {
+    const modal = searchParams.get('modal');
+    if (modal === 'install') {
+      setShowInstallModal(true);
+    } else if (modal === 'appinfo') {
+      setShowAppInfoModal(true);
+    }
+  }, [searchParams]);
+
+  // Helper functions to manage modal state with URL params
+  const openInstallModal = useCallback(() => {
+    setShowInstallModal(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('modal', 'install');
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const closeInstallModal = useCallback(() => {
+    setShowInstallModal(false);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('modal');
+    router.push(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const openAppInfoModal = useCallback(() => {
+    setShowAppInfoModal(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('modal', 'appinfo');
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const closeAppInfoModal = useCallback(() => {
+    setShowAppInfoModal(false);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('modal');
+    router.push(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false });
+  }, [searchParams, pathname, router]);
+
   useEffect(() => {
     if (!isUserMenuOpen || !anchorElement) return;
 
@@ -655,8 +696,8 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
                 onLoginClick={() => setIsLoginPopupOpen(true)}
                 onLogoutClick={() => setShowLogoutConfirm(true)}
                 hasActiveFilters={hasActiveFilters}
-                onInstallClick={() => setShowInstallModal(true)}
-                onAppInfoClick={() => setShowAppInfoModal(true)}
+                onInstallClick={openInstallModal}
+                onAppInfoClick={openAppInfoModal}
                 onHomeClick={() => {
                   setIsMobileMenuOpen(false);
                   setIsSearchPopupOpen(false);
@@ -684,7 +725,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
       <div className="flex-1 flex flex-col lg:flex-row min-w-0 pt-14">
         {/* Left Panel - Navigation (Desktop) */}
         <div className="hidden xl:block xl:w-64 xl:min-w-64 bg-white border-b xl:border-b-0 xl:border-r border-gray-200 flex-shrink-0 xl:fixed xl:top-11 xl:left-0 xl:overflow-y-auto xl:z-20" style={{ overflowAnchor: 'none', height: 'calc(100vh - 2.75rem)' }}>
-          <Navigation onSearchClick={handleSearchClick} onLoginClick={() => setIsLoginPopupOpen(true)} onLogoutClick={() => setShowLogoutConfirm(true)} onInstallClick={() => setShowInstallModal(true)} onAppInfoClick={() => setShowAppInfoModal(true)} hasActiveFilters={hasActiveFilters} />
+          <Navigation onSearchClick={handleSearchClick} onLoginClick={() => setIsLoginPopupOpen(true)} onLogoutClick={() => setShowLogoutConfirm(true)} onInstallClick={openInstallModal} onAppInfoClick={openAppInfoModal} hasActiveFilters={hasActiveFilters} />
         </div>
 
         {/* Center Panel - Main Content */}
@@ -913,7 +954,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
       {showInstallModal && (
         <InstallInstructionsModal
           isOpen={showInstallModal}
-          onClose={() => setShowInstallModal(false)}
+          onClose={closeInstallModal}
         />
       )}
 
@@ -921,7 +962,7 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
       {showAppInfoModal && (
         <AppInfoModal
           isOpen={showAppInfoModal}
-          onClose={() => setShowAppInfoModal(false)}
+          onClose={closeAppInfoModal}
         />
       )}
     </div>

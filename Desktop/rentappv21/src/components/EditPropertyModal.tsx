@@ -146,6 +146,7 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
   const [activeTab, setActiveTab] = useState<'basic' | 'details'>('basic');
   const [rentalRateValue, setRentalRateValue] = useState('');
   const [areaUnitValue, setAreaUnitValue] = useState('');
+  const [isRentalRateOpen, setIsRentalRateOpen] = useState(false);
 
   // Collapsible section state
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
@@ -327,7 +328,7 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
   }, [property]);
 
   // Block background scroll when modal is open
-  usePreventScroll(isOpen);
+  usePreventScroll(isOpen || showWardPopup || showMainImagePopup || showOtherImagesPopup || showDeleteConfirm || isRentalRateOpen);
 
   const handleInputChange = (field: keyof PropertyFormData, value: string | string[]) => {
     if (!formData) return;
@@ -875,11 +876,7 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-base font-bold text-white mb-2 text-center">
-                  {rentalRateValue === 'price-night' ? 'Price/night (Tsh)' :
-                   rentalRateValue === 'price-hour' ? 'Price/hour (Tsh)' :
-                   rentalRateValue === 'price-day' ? 'Price/day (Tsh)' :
-                   rentalRateValue === 'price-month' ? 'Price/month (Tsh)' :
-                   'Price (Tsh)'}
+                  Price{rentalRateValue ? '/' + rentalRateValue.replace('price-', '') : ''} (Tsh)
                 </label>
                 <input
                   type="text"
@@ -914,43 +911,26 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
                 </select>
               </div>
 
-              {/* Rental Rate Dropdown */}
-              <div className="col-span-2 flex justify-end">
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="flex items-center justify-end gap-2 w-auto pr-2 text-sm font-medium text-white cursor-pointer bg-transparent border-none outline-none whitespace-nowrap"
-                    style={{ backgroundColor: 'transparent' }}
-                    onClick={(e) => {
-                      const select = e.currentTarget.nextElementSibling as HTMLSelectElement;
-                      if (select) select.click();
-                    }}
-                  >
-                    <span>Rental rate</span>
-                    <ChevronRight
-                      size={16}
-                      className="text-white"
-                    />
-                  </button>
-                  <select
-                    value={rentalRateValue}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setRentalRateValue(value);
-                      // Update the pricingUnit in the form data (empty string for no selection)
-                      const pricingUnit = value ? value.replace('price-', '') as 'month' | 'night' | 'day' | 'hour' : '';
-                      handleInputChange('pricingUnit' as keyof PropertyFormData, pricingUnit);
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  >
-                    <option value="" className="text-gray-400">---</option>
-                    <option value="price-month">Price/month</option>
-                    <option value="price-night">Price/night</option>
-                    <option value="price-hour">Price/hour</option>
-                    <option value="price-day">Price/day</option>
-                  </select>
-                </div>
-              </div>
+            </div>
+
+            {/* Rental Rate - Button to Open Popup */}
+            <div className="mt-3 relative">
+              <button
+                type="button"
+                onClick={() => setIsRentalRateOpen(true)}
+                className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center h-10 transition-all flex items-center justify-center bg-gray-100 text-gray-800 relative z-0"
+              >
+                <span className="flex-1">
+                  {rentalRateValue 
+                    ? `Rental rate (${rentalRateValue === 'price-month' ? 'Price/month' :
+                        rentalRateValue === 'price-night' ? 'Price/night' :
+                        rentalRateValue === 'price-hour' ? 'Price/hour' :
+                        rentalRateValue === 'price-day' ? 'Price/day' : ''})`
+                    : 'Rental rate'
+                  }
+                </span>
+                <ChevronRight size={16} />
+              </button>
             </div>
           </div>
 
@@ -1315,6 +1295,122 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
                   OK
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rental Rate Popup */}
+      {isRentalRateOpen && (
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ 
+            touchAction: 'none', 
+            minHeight: '100vh', 
+            height: '100%', 
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+          onClick={() => setIsRentalRateOpen(false)}
+        >
+          <div 
+            className="rounded-xl w-full mx-4 shadow-2xl overflow-hidden bg-white max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="overflow-hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setRentalRateValue('');
+                  handleInputChange('pricingUnit' as keyof PropertyFormData, '');
+                  setIsRentalRateOpen(false);
+                }}
+                className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+              >
+                <span className="px-4 flex items-center justify-between">
+                  <span>---</span>
+                  <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                    {!rentalRateValue && (
+                      <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                    )}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const value = 'price-month';
+                  setRentalRateValue(value);
+                  handleInputChange('pricingUnit' as keyof PropertyFormData, 'month');
+                  setIsRentalRateOpen(false);
+                }}
+                className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+              >
+                <span className="px-4 flex items-center justify-between">
+                  <span>Price/month</span>
+                  <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                    {rentalRateValue === 'price-month' && (
+                      <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                    )}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const value = 'price-night';
+                  setRentalRateValue(value);
+                  handleInputChange('pricingUnit' as keyof PropertyFormData, 'night');
+                  setIsRentalRateOpen(false);
+                }}
+                className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+              >
+                <span className="px-4 flex items-center justify-between">
+                  <span>Price/night</span>
+                  <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                    {rentalRateValue === 'price-night' && (
+                      <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                    )}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const value = 'price-hour';
+                  setRentalRateValue(value);
+                  handleInputChange('pricingUnit' as keyof PropertyFormData, 'hour');
+                  setIsRentalRateOpen(false);
+                }}
+                className="w-full py-3 text-lg transition-colors text-left border-b border-gray-300 mb-1 bg-white text-gray-800 hover:bg-gray-100"
+              >
+                <span className="px-4 flex items-center justify-between">
+                  <span>Price/hour</span>
+                  <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                    {rentalRateValue === 'price-hour' && (
+                      <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                    )}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const value = 'price-day';
+                  setRentalRateValue(value);
+                  handleInputChange('pricingUnit' as keyof PropertyFormData, 'day');
+                  setIsRentalRateOpen(false);
+                }}
+                className="w-full py-3 text-lg transition-colors text-left bg-white text-gray-800 hover:bg-gray-100"
+              >
+                <span className="px-4 flex items-center justify-between">
+                  <span>Price/day</span>
+                  <span className="w-[20px] h-[20px] rounded-full border-2 border-gray-300 flex items-center justify-center">
+                    {rentalRateValue === 'price-day' && (
+                      <span className="w-[10px] h-[10px] rounded-full bg-blue-500"></span>
+                    )}
+                  </span>
+                </span>
+              </button>
             </div>
           </div>
         </div>

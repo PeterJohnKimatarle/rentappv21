@@ -210,7 +210,9 @@ export function isAnyModalOpen(): boolean {
  * @param isOpen - Whether the popup/modal is open
  */
 export function usePreventScroll(isOpen: boolean) {
-  useEffect(() => {
+  // Use useLayoutEffect to apply scroll lock synchronously before browser paint
+  // This prevents any flash of unlocked scroll when modals reopen
+  useLayoutEffect(() => {
     if (isOpen) {
       globalScrollLock.lock();
       globalModalLock.register();
